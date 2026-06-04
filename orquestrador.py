@@ -87,152 +87,112 @@ def extrair_mlb_id(url):
 
 @app.route('/buscar-produto-ml', methods=['POST'])
 def buscar_produto_ml():
-    """Busca dados reais do produto ML pelo servidor — sem problema de CORS"""
+    """Busca dados reais do produto ML - segue orientacao oficial ML API"""
     data = request.get_json()
     link = (data.get('link') or data.get('url') or '').strip()
-
     if not link:
         return jsonify({"error": "link obrigatorio"}), 400
 
-    # Resolver link curto meli.la no servidor
-    item_id = extrair_mlb_id(link)
-    if not item_id and 'meli.la' in link:
-        try:
-            r = requests.get(link, allow_redirects=True, timeout=10,
-                headers={'User-Agent': 'Mozilla/5.0'})
-            item_id = extrair_mlb_id(r.url)
-            print(f"Resolvido meli.la -> {r.url} -> {item_id}")
-        except Exception as e:
-            print(f"Erro resolve meli.la: {e}")
-
-    if not item_id:
-        return jsonify({"error": "MLB ID nao encontrado no link"}), 400
-
-    # Buscar com token oficial ML
     ml_token = os.getenv('ML_ACCESS_TOKEN', '')
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-            'Accept-Language': 'pt-BR,pt;q=0.9',
-        }
-        if ml_token:
-            headers['Authorization'] = f'Bearer {ml_token}'
+    headers = {
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'application/json',
+    }
+    if ml_token:
+        headers['Authorization'] = f'Bearer {ml_token}'
 
-        # Estrategia 1: API items com token
-        r_item = requests.get(f'https://api.mercadolibre.com/items/{item_id}',
+    item_id = None
+
+    # PASSO 1: Resolver link para item_id real usando /urls/resolve
+    try:
+        # Se for meli.la, primeiro resolve o redirect
+        url_para_resolver = link
+        if 'meli.la' in link:
+            r_redirect = requests.get(link, allow_redirects=True, timeout=10,
+                headers={'User-Agent': 'Mozilla/5.0'})
+            url_para_resolver = r_redirect.url
+            print(f"meli.la resolvido para: {url_para_resolver}")
+
+        # Usa /urls/resolve para pegar o item_id real
+        r_resolve = requests.get(
+            f'https://api.mercadolibre.com/urls/resolve?url={requests.utils.quote(url_para_resolver, safe="")}',
             headers=headers, timeout=15)
-        if r_item.ok:
-            d = r_item.json()
+        print(f"urls/resolve status: {r_resolve.status_code} | {r_resolve.text[:200]}")
+        if r_resolve.ok:
+            resolve_data = r_resolve.json()
+            item_id = resolve_data.get('id')
+            print(f"Item ID resolvido: {item_id}")
+    except Exception as e:
+        print(f"Erro resolve: {e}")
+
+    # PASSO 2: Se nao resolveu, tenta extrair MLB direto da URL
+    if not item_id:
+        item_id = extrair_mlb_id(link)
+
+    # PASSO 3: Se for ID de catalogo /p/MLB..., usa /products/
+    catalog_id = None
+    mp = re.search(r'/p/(MLB\d{7,12})', link, re.IGNORECASE)
+    if mp:
+        catalog_id = mp.group(1).upper()
+
+    # PASSO 4: Buscar dados do produto
+    try:
+        produto = None
+
+        # Tenta /items com item_id real
+        if item_id and not item_id.startswith('MLB') == False:
+            r_item = requests.get(f'https://api.mercadolibre.com/items/{item_id}',
+                headers=headers, timeout=15)
+            print(f"items/{item_id} status: {r_item.status_code}")
+            if r_item.ok:
+                produto = r_item.json()
+
+        # Tenta /products com catalog_id
+        if not produto and catalog_id:
+            r_prod = requests.get(f'https://api.mercadolibre.com/products/{catalog_id}',
+                headers=headers, timeout=15)
+            print(f"products/{catalog_id} status: {r_prod.status_code}")
+            if r_prod.ok:
+                d = r_prod.json()
+                imagens = [(p.get('url') or '').replace('http://','https://') 
+                          for p in (d.get('pictures') or []) if p.get('url')]
+                imagens = [re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F\1', u, flags=re.IGNORECASE) 
+                          for u in imagens][:5]
+                preco = ''
+                bbw = d.get('buy_box_winner') or {}
+                if bbw.get('price'):
+                    preco = 'R${:,.2f}'.format(bbw['price']).replace(',','X').replace('.',',').replace('X','.')
+                print(f"products OK: {d.get('name','')} | {len(imagens)} imagens")
+                return jsonify({'item_id': catalog_id, 'titulo': d.get('name',''),
+                    'preco': preco, 'imagens': imagens, 'permalink': link, 
+                    'fonte': 'ml_products_api'})
+
+        if produto:
             imagens = []
-            for pic in (d.get('pictures') or []):
+            for pic in (produto.get('pictures') or []):
                 url_img = (pic.get('url') or pic.get('secure_url') or '').replace('http://','https://')
-                url_img = re.sub(r"-[A-Z](\.(jpg|webp|png))$", r"-F\1", url_img, flags=re.IGNORECASE)
+                url_img = re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F\1', url_img, flags=re.IGNORECASE)
                 if url_img: imagens.append(url_img)
-            if not imagens and d.get('thumbnail'):
-                thumb = d['thumbnail'].replace('http://','https://')
-                imagens.append(re.sub(r"-[A-Z](\.(jpg|webp|png))$", r"-F\1", thumb, flags=re.IGNORECASE))
+            if not imagens and produto.get('thumbnail'):
+                thumb = produto['thumbnail'].replace('http://','https://')
+                imagens.append(re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F\1', thumb, flags=re.IGNORECASE))
             imagens = list(dict.fromkeys(imagens))[:5]
             preco = ''
-            if d.get('price'):
-                preco = 'R${:,.2f}'.format(d['price']).replace(',','X').replace('.',',').replace('X','.')
-            print(f'Items API OK: {d.get("title","")} | {len(imagens)} imagens')
-            return jsonify({'item_id': item_id, 'titulo': d.get('title',''), 'preco': preco,
-                'descricao': d.get('warranty','') or '', 'imagens': imagens,
-                'permalink': d.get('permalink', link), 'fonte': 'mercadolivre_oficial'})
+            if produto.get('price'):
+                preco = 'R${:,.2f}'.format(produto['price']).replace(',','X').replace('.',',').replace('X','.')
+            print(f"items OK: {produto.get('title','')} | {len(imagens)} imagens")
+            return jsonify({'item_id': item_id, 'titulo': produto.get('title',''),
+                'preco': preco, 'descricao': produto.get('warranty','') or '',
+                'imagens': imagens, 'permalink': produto.get('permalink', link),
+                'fonte': 'ml_items_api'})
 
-        # Estrategia 2: buscar por ID na search API
-        r = requests.get(
-            f'https://api.mercadolibre.com/sites/MLB/search?q={item_id}&limit=3',
-            headers=headers, timeout=15)
-
-        if r.ok:
-            data = r.json()
-            results = data.get('results', [])
-            # Procurar item com ID exato
-            item = None
-            for res in results:
-                if res.get('id') == item_id:
-                    item = res
-                    break
-            if not item and results:
-                item = results[0]
-
-            if item:
-                imagens = []
-                thumb = (item.get('thumbnail') or '').replace('http://','https://')
-                if thumb:
-                    # Tentar pegar imagem em alta resolucao
-                    thumb_hd = re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F', thumb, flags=re.IGNORECASE)
-                    imagens.append(thumb_hd)
-                    if thumb_hd != thumb:
-                        imagens.append(thumb)
-
-                preco = ''
-                if item.get('price'):
-                    preco = 'R${:,.2f}'.format(item['price']).replace(',','X').replace('.',',').replace('X','.')
-
-                print(f"Search API: {item.get('title','')} | {len(imagens)} imagens")
-                return jsonify({
-                    'item_id': item_id,
-                    'titulo': item.get('title',''),
-                    'preco': preco,
-                    'descricao': '',
-                    'imagens': imagens,
-                    'permalink': item.get('permalink', link),
-                    'fonte': 'mercadolivre_search'
-                })
-
-        # Estrategia 2: API items direta
-        r2 = requests.get(f'https://api.mercadolibre.com/items/{item_id}',
-            headers=headers, timeout=15)
-
-        if not r2.ok:
-            return jsonify({"error": f"ML API retornou {r2.status_code}", "item_id": item_id}), 400
-
-        d = r.json()
-
-        # Processar imagens em alta resolução
-        imagens = []
-        for pic in (d.get('pictures') or []):
-            url_img = (pic.get('url') or pic.get('secure_url') or '').replace('http://', 'https://')
-            url_img = re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F\1', url_img, flags=re.IGNORECASE)
-            if url_img:
-                imagens.append(url_img)
-
-        # Fallback thumbnail
-        if not imagens and d.get('thumbnail'):
-            thumb = d['thumbnail'].replace('http://', 'https://')
-            thumb = re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F\1', thumb, flags=re.IGNORECASE)
-            imagens.append(thumb)
-
-        imagens = list(dict.fromkeys(imagens))[:5]  # dedup + max 5
-
-        preco = ''
-        if d.get('price'):
-            preco = 'R${:,.2f}'.format(d['price']).replace(',', 'X').replace('.', ',').replace('X', '.')
-
-        resultado = {
-            "item_id": item_id,
-            "titulo": d.get('title', ''),
-            "preco": preco,
-            "descricao": d.get('warranty', '') or '',
-            "imagens": imagens,
-            "permalink": d.get('permalink', link),
-            "status": d.get('status', ''),
-            "fonte": "mercadolivre_oficial"
-        }
-
-        print(f"✅ Produto encontrado: {resultado['titulo']} | {len(imagens)} imagens")
-        return jsonify(resultado)
+        return jsonify({"error": "Produto nao encontrado", "item_id": item_id, "catalog_id": catalog_id}), 404
 
     except Exception as e:
-        print(f"❌ Erro buscar ML: {e}")
-        return jsonify({"error": str(e), "item_id": item_id}), 500
+        print(f"Erro buscar produto: {e}")
+        return jsonify({"error": str(e)}), 500
 
-# ─────────────────────────────────────────
-# PROXY IMAGEM ML — para Instagram acessar
-# ─────────────────────────────────────────
+
 @app.route('/proxy-image-ml', methods=['POST'])
 def proxy_image_ml():
     data = request.json
