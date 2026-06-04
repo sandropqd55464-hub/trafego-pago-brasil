@@ -108,51 +108,87 @@ def buscar_produto_ml():
     if not item_id:
         return jsonify({"error": "MLB ID nao encontrado no link"}), 400
 
-    # Buscar na API oficial ML — tenta multiplos endpoints
+    # Buscar com token oficial ML
+    ml_token = os.getenv('ML_ACCESS_TOKEN', '')
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-            'Referer': 'https://www.mercadolivre.com.br/',
-            'Origin': 'https://www.mercadolivre.com.br',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+            'Accept-Language': 'pt-BR,pt;q=0.9',
         }
-        # Tentar API oficial primeiro, depois search como fallback
-        r = requests.get(f'https://api.mercadolibre.com/items/{item_id}',
+        if ml_token:
+            headers['Authorization'] = f'Bearer {ml_token}'
+
+        # Estrategia 1: API items com token
+        r_item = requests.get(f'https://api.mercadolibre.com/items/{item_id}',
+            headers=headers, timeout=15)
+        if r_item.ok:
+            d = r_item.json()
+            imagens = []
+            for pic in (d.get('pictures') or []):
+                url_img = (pic.get('url') or pic.get('secure_url') or '').replace('http://','https://')
+                url_img = re.sub(r"-[A-Z](\.(jpg|webp|png))$", r"-F\1", url_img, flags=re.IGNORECASE)
+                if url_img: imagens.append(url_img)
+            if not imagens and d.get('thumbnail'):
+                thumb = d['thumbnail'].replace('http://','https://')
+                imagens.append(re.sub(r"-[A-Z](\.(jpg|webp|png))$", r"-F\1", thumb, flags=re.IGNORECASE))
+            imagens = list(dict.fromkeys(imagens))[:5]
+            preco = ''
+            if d.get('price'):
+                preco = 'R${:,.2f}'.format(d['price']).replace(',','X').replace('.',',').replace('X','.')
+            print(f'Items API OK: {d.get("title","")} | {len(imagens)} imagens')
+            return jsonify({'item_id': item_id, 'titulo': d.get('title',''), 'preco': preco,
+                'descricao': d.get('warranty','') or '', 'imagens': imagens,
+                'permalink': d.get('permalink', link), 'fonte': 'mercadolivre_oficial'})
+
+        # Estrategia 2: buscar por ID na search API
+        r = requests.get(
+            f'https://api.mercadolibre.com/sites/MLB/search?q={item_id}&limit=3',
             headers=headers, timeout=15)
 
-        # Se der 403, tenta via search API
-        if r.status_code == 403:
-            print(f"API items 403, tentando search...")
-            r2 = requests.get(
-                f'https://api.mercadolibre.com/sites/MLB/search?q={item_id}&limit=1',
-                headers=headers, timeout=15)
-            if r2.ok:
-                data2 = r2.json()
-                results = data2.get('results', [])
-                if results:
-                    item = results[0]
-                    imagens = []
-                    thumb = (item.get('thumbnail') or '').replace('http://','https://')
-                    if thumb:
-                        thumb_hd = re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F', thumb, flags=re.IGNORECASE)
-                        imagens.append(thumb_hd)
-                    preco = ''
-                    if item.get('price'):
-                        preco = 'R${:,.2f}'.format(item['price']).replace(',','X').replace('.',',').replace('X','.')
-                    return jsonify({
-                        'item_id': item_id,
-                        'titulo': item.get('title',''),
-                        'preco': preco,
-                        'descricao': '',
-                        'imagens': imagens,
-                        'permalink': item.get('permalink', ''),
-                        'fonte': 'mercadolivre_search'
-                    })
-            return jsonify({"error": f"ML API retornou {r.status_code}", "item_id": item_id}), 400
+        if r.ok:
+            data = r.json()
+            results = data.get('results', [])
+            # Procurar item com ID exato
+            item = None
+            for res in results:
+                if res.get('id') == item_id:
+                    item = res
+                    break
+            if not item and results:
+                item = results[0]
 
-        if not r.ok:
-            return jsonify({"error": f"ML API retornou {r.status_code}", "item_id": item_id}), 400
+            if item:
+                imagens = []
+                thumb = (item.get('thumbnail') or '').replace('http://','https://')
+                if thumb:
+                    # Tentar pegar imagem em alta resolucao
+                    thumb_hd = re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F', thumb, flags=re.IGNORECASE)
+                    imagens.append(thumb_hd)
+                    if thumb_hd != thumb:
+                        imagens.append(thumb)
+
+                preco = ''
+                if item.get('price'):
+                    preco = 'R${:,.2f}'.format(item['price']).replace(',','X').replace('.',',').replace('X','.')
+
+                print(f"Search API: {item.get('title','')} | {len(imagens)} imagens")
+                return jsonify({
+                    'item_id': item_id,
+                    'titulo': item.get('title',''),
+                    'preco': preco,
+                    'descricao': '',
+                    'imagens': imagens,
+                    'permalink': item.get('permalink', link),
+                    'fonte': 'mercadolivre_search'
+                })
+
+        # Estrategia 2: API items direta
+        r2 = requests.get(f'https://api.mercadolibre.com/items/{item_id}',
+            headers=headers, timeout=15)
+
+        if not r2.ok:
+            return jsonify({"error": f"ML API retornou {r2.status_code}", "item_id": item_id}), 400
 
         d = r.json()
 
