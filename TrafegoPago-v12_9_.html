@@ -484,29 +484,23 @@ function escHtml(text) {
 const ML = {nome:'Creatina Growth 250g',link:'https://meli.la/1FwviqM',comissao:'16%',preco:'R$49,90',cat:'Suplementos / Fitness',ig:'brasil_melhores_ofertas'};
 
 // URL base do servidor Flask (atualizar se usar ngrok)
-let FLASK_BASE = localStorage.getItem('flaskBase') || 'http://127.0.0.1:5000';
+const RAILWAY_URL = 'https://trafego-pago-brasil-production.up.railway.app';
+  let FLASK_BASE = localStorage.getItem('flaskBase') || 'https://trafego-pago-brasil-production.up.railway.app';
 
-// Proxy de imagem: chama Flask LOCAL e substitui host pelo ngrok na URL publica
+// Proxy de imagem: baixa no servidor Flask e retorna URL publica via ngrok
 async function proxiarImagemML(ml_image_url){
   if(!ml_image_url) return null;
+  const FLASK_URL = localStorage.getItem('ngrokUrl') || 'https://trafego-pago-brasil-production.up.railway.app';
   try{
-    const res = await fetch('http://127.0.0.1:5000/proxy-image-ml', {
+    const res = await fetch(FLASK_URL+'/proxy-image-ml', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({image_url: ml_image_url})
     });
-    if(!res.ok) throw new Error('Flask retornou '+res.status);
     const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    let publicUrl = data.public_url || null;
-    const ngrokUrl = (localStorage.getItem('ngrokUrl')||'').replace(/\/$/,'');
-    if(publicUrl && ngrokUrl){
-      publicUrl = publicUrl.replace(/https?:\/\/[\d\.]+:5000/, ngrokUrl);
-    }
-    console.log('Imagem proxiada:', publicUrl);
-    return publicUrl;
+    return data.public_url || null;
   }catch(e){
-    console.error('Proxy falhou:', e.message);
+    console.error('Proxy falhou:', e);
     return null;
   }
 }
@@ -1176,15 +1170,15 @@ async function gerarCriativos(){
   let res=null;
   try{
     if(ia==='ambos'){
-      const r=await fetch('http://127.0.0.1:5000/gerar-criativo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
+      const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/gerar-criativo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
       const d=await r.json();
       res=parseRes(d.claude)||parseRes(d.llama);
     } else if(ia==='claude'){
-      const r=await fetch('http://127.0.0.1:5000/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
+      const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
       const d=await r.json();
       res=parseRes(d.resposta);
     } else {
-      const r=await fetch('http://127.0.0.1:5000/meta/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
+      const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/meta/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
       const d=await r.json();
       res=parseRes(d.resposta);
     }
@@ -1469,7 +1463,7 @@ async function gerarHt(){
   const nicho=document.getElementById('htNicho').value, qtd=document.getElementById('htQtd').value;
   document.getElementById('htRes').innerHTML=`<div class="card" style="text-align:center;padding:30px"><div class="loading-dots" style="justify-content:center"><span></span><span></span><span></span></div></div>`;
   try{
-    const r=await fetch('http://127.0.0.1:5000/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Gere ${qtd} hashtags para Instagram sobre "${nicho}" no Brasil. Responda APENAS as hashtags separadas por espaço.`}]})});
+    const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Gere ${qtd} hashtags para Instagram sobre "${nicho}" no Brasil. Responda APENAS as hashtags separadas por espaço.`}]})});
     const d=await r.json(), tags=d.content.map(x=>x.text||'').join('').trim();
     document.getElementById('htRes').innerHTML=`<div class="card"><div class="card-title">Hashtags: ${escHtml(nicho)}</div><div class="criativo-text" id="htOut" style="color:var(--blue);line-height:2">${escHtml(tags)}</div><div class="criativo-actions mt-12"><button class="copy-btn" onclick="copiarEl('htOut',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copiar</button></div></div>`;
   }catch(e){document.getElementById('htRes').innerHTML=`<div class="card"><div class="text-red">Erro. Tente novamente.</div></div>`;}
@@ -1577,7 +1571,7 @@ function renderAutoPlano(){
 }
 async function gerarTextoSlot(idx){
   const s=autoPlano.slots[idx]; s.status='gerando';
-  try{const r=await fetch('http://127.0.0.1:5000/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:`Legenda curta e viral para ${s.formato} Instagram. Produto: ${s.prodNome}. Link: ${s.prodLink}. Tom urgência. Máx 3 linhas. SEM hashtags.`}]})});const d=await r.json();s.texto=d.content.map(x=>x.text||'').join('').trim();}catch(e){s.texto=`${s.prodEmoji} ${s.prodNome} em oferta! 🔥
+  try{const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:`Legenda curta e viral para ${s.formato} Instagram. Produto: ${s.prodNome}. Link: ${s.prodLink}. Tom urgência. Máx 3 linhas. SEM hashtags.`}]})});const d=await r.json();s.texto=d.content.map(x=>x.text||'').join('').trim();}catch(e){s.texto=`${s.prodEmoji} ${s.prodNome} em oferta! 🔥
 ${s.prodLink}`;}
   s.status='pendente'; try{localStorage.setItem('autoPlano',JSON.stringify(autoPlano));}catch(e){}
   renderAutoPlano(); toast('✅ Copy gerado!');
@@ -1795,67 +1789,40 @@ function extrairMLBId(url){
 // Busca dados completos do produto via API Oficial ML (sem auth para dados públicos)
 async function buscarDadosProdutoML(link){
   if(!link) return null;
-
-  // ── Passo 1: tentar extrair MLB ID direto da URL ──
-  let itemId = extrairMLBId(link);
-
-  // ── Passo 2: se for link curto (meli.la), resolver via search ──
-  if(!itemId && link.includes('meli.la')){
-    // Pegar o código do link curto e buscar por ele
-    const code = link.split('/').pop().split('?')[0];
-    // Tentar resolver via corsproxy
-    try {
-      const pr = await fetch(`https://corsproxy.io/?${encodeURIComponent(link)}`, {redirect:'follow'});
-      const finalUrl = pr.url;
-      itemId = extrairMLBId(finalUrl);
-    } catch(e){ console.log('Resolve meli.la:', e.message); }
-  }
-
-  // ── Passo 3: se tiver MLB ID, buscar na API oficial ──
-  if(itemId){
-    const apiUrl = 'https://api.mercadolibre.com/items/'+itemId;
-    const endpoints = [
-      `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`,
-      `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`,
-      `https://thingproxy.freeboard.io/fetch/${apiUrl}`,
-      apiUrl,
-    ];
-    for(const ep of endpoints){
-      try{
-        const r = await fetch(ep, {headers:{'Accept':'application/json'}});
-        if(!r.ok) continue;
-        let data = await r.json();
-        if(data.contents) data = JSON.parse(data.contents);
-        if(data.id){
-          // Pegar imagens em alta resolução — substituir sufixo por -F (full)
-          let imagens = (data.pictures||[]).map(p=>{
-            const u = (p.url||p.secure_url||'').replace('http://','https://');
-            return u.replace(/-[A-Z](\.(jpg|webp|png))/gi,'-F.$2');
-          }).filter(u=>u.length>10).slice(0,5);
-          // Fallback: thumbnail em alta res
-          const thumb = (data.thumbnail||'').replace('http://','https://').replace(/-[A-Z](\.(jpg|webp|png))/gi,'-F.$1');
-          if(!imagens.length && thumb) imagens.push(thumb);
-          // Fallback extra: construir URL pelo ID do produto
-          if(!imagens.length){
-            imagens.push('https://http2.mlstatic.com/D_NQ_NP_'+itemId.replace('MLB','')+'-F.jpg');
-          }
-          // NÃO proxiar aqui — apenas retornar imagens originais ML para exibição
-          // A proxiação acontece SOMENTE na hora de publicar (função proxiarImagemML)
-          return {
-            titulo: data.title||'',
-            descricao: [data.warranty||'', data.condition==='new'?'Novo':''].filter(Boolean).join(' · '),
-            preco: data.price ? 'R$'+data.price.toFixed(2).replace('.',',') : '',
-            imagens,
-            fonte: 'mercadolivre',
-            itemId,
-          };
-        }
-      }catch(e){ console.log('ML API endpoint falhou:', e.message); }
+  window._ultimoML = null;
+  try{
+    console.log('[ML] Chamando Railway:', link);
+    const r = await fetch(`${RAILWAY_URL}/buscar-produto-ml`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({link: link})
+    });
+    if(!r.ok){
+      console.error('[ML] Railway status:', r.status);
+      throw new Error(`Railway ${r.status}`);
     }
+    const data = await r.json();
+    console.log('[ML] Railway retornou:', data);
+    if(data.titulo && data.imagens?.length){
+      const resultado = {
+        titulo: data.titulo,
+        descricao: data.descricao || '',
+        preco: data.preco || '',
+        imagens: data.imagens || [],
+        fonte: data.fonte || 'railway_ml',
+        itemId: data.item_id || extrairMLBId(link),
+        permalink: data.permalink || link
+      };
+      window._ultimoML = resultado;
+      _cacheML[link] = resultado.imagens;
+      return resultado;
+    }
+    throw new Error('Railway sem titulo ou imagens');
+  } catch(e){
+    console.error('[ML] Falha buscarDadosProdutoML:', e.message);
+    window._ultimoML = null;
+    return null;
   }
-
-  // ── Passo 4: fallback — buscar por query ──
-  return null;
 }
 
 // Gera hashtags automáticas por plataforma
@@ -1942,7 +1909,7 @@ function rSettings(){
           O Instagram precisa acessar a imagem pela internet. Execute <code style="background:var(--ink2);padding:1px 5px;border-radius:4px">ngrok http 5000</code> e cole a URL aqui.
         </div>
         <input id="ngrokUrlInput" value="${localStorage.getItem('ngrokUrl')||''}" placeholder="https://xxxx.ngrok.io" style="margin-bottom:8px">
-        <button onclick="salvarNgrokUrl()" class="btn btn-primary btn-sm">💾 Salvar URL ngrok</button>
+        <button onclick="const v=document.getElementById('ngrokUrlInput').value.trim();if(v){localStorage.setItem('ngrokUrl',v);FLASK_BASE='https://trafego-pago-brasil-production.up.railway.app';toast('✅ URL ngrok salva!','var(--green)');}else{localStorage.removeItem('ngrokUrl');toast('URL removida','var(--amber)');}" class="btn btn-primary btn-sm">💾 Salvar URL ngrok</button>
       </div>
     </div>
     <div class="card"><div class="card-title">📦 Produto Principal</div>
@@ -2122,24 +2089,6 @@ POST /act_{ID}/adsets<br>
   </div>`;
 }
 
-async function salvarNgrokUrl(){
-  const v = document.getElementById('ngrokUrlInput').value.trim();
-  if(v){
-    localStorage.setItem('ngrokUrl', v);
-    // Avisar o Flask sobre a URL do ngrok para gerar URLs publicas corretas
-    try{
-      await fetch('http://127.0.0.1:5000/set-ngrok', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({url: v})
-      });
-    }catch(e){ console.log('Flask nao respondeu ao set-ngrok:', e.message); }
-    toast('URL ngrok salva!','var(--green)');
-  } else {
-    localStorage.removeItem('ngrokUrl');
-    toast('URL removida','var(--amber)');
-  }
-}
-
 function salvarToken(){
   const tk=document.getElementById('cfgToken').value.trim();
   const pid=document.getElementById('cfgPageId').value.trim();
@@ -2312,7 +2261,7 @@ async function analisarRegiao(){
   const prodId=document.getElementById('ar-prod').value,escopo=document.getElementById('ar-escopo').value,estado=document.getElementById('ar-estado')?.value||'',cidade=document.getElementById('ar-cidade')?.value||'',prod=PRODUTOS.find(p=>p.id==prodId)||PRODUTOS[0],local=escopo==='cidade'?cidade:escopo==='estado'?estado:escopo==='brasil'?'Brasil':'Global',out=document.getElementById('ar-resultado');
   out.innerHTML=`<div style="text-align:center;padding:24px;color:#8888aa"><div class="loading-dots" style="justify-content:center;margin-bottom:8px"><span></span><span></span><span></span></div>Analisando <strong>${prod.nome}</strong> em <strong>${local}</strong>...</div>`;
   try{
-    const r=await fetch('http://127.0.0.1:5000/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:`Analista de mercado digital Brasil. Produto: "${prod.nome}" (${prod.cat}, comissão ${prod.comissao}). Região: ${local}. Responda APENAS JSON:
+    const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:`Analista de mercado digital Brasil. Produto: "${prod.nome}" (${prod.cat}, comissão ${prod.comissao}). Região: ${local}. Responda APENAS JSON:
 {"veredicto":"VALE A PENA ou NÃO VALE ou ATENÇÃO","score":0-100,"dor_ou_beneficio":"DOR ou BENEFÍCIO","explicacao":"2 frases","pontos_positivos":["p1","p2","p3"],"pontos_negativos":["n1","n2"],"melhor_regiao":"estado mais indicado","melhor_formato":"Reels ou Stories ou Feed","melhor_horario":"ex:19h-21h","recomendacao":"frase curta"}`}]})});
     const d=await r.json();let raw=d.content.map(x=>x.text||'').join('').replace(/```json|```/g,'').trim();const s=raw.indexOf('{'),e=raw.lastIndexOf('}');if(s>=0&&e>s)raw=raw.slice(s,e+1);const res=JSON.parse(raw);
     const cor=res.veredicto==='VALE A PENA'?'#2ecc71':res.veredicto==='NÃO VALE'?'#e74c3c':'#f0a500',bg=res.veredicto==='VALE A PENA'?'rgba(46,204,113,.08)':res.veredicto==='NÃO VALE'?'rgba(231,76,60,.08)':'rgba(240,165,0,.08)',icon=res.veredicto==='VALE A PENA'?'✅':res.veredicto==='NÃO VALE'?'❌':'⚠';
@@ -2404,7 +2353,7 @@ async function enviarChatBot(){
   msgs.scrollTop=msgs.scrollHeight;
   const ctx=`Você é o assistente Tráfego Pago Brasil. Plataforma de tráfego pago para afiliados ML. Itens: 1.Dashboard 2.Campanhas 2.1.NovaCampanha 3.CriativosVirais 4.Autopiloto 4.1.AutopilotoConteúdo 5.AntiBan 6.Hashtags 7.Performance 7.1.Rastreamento 7.2.Monitor 8.Afiliados 9.Publisher 10.Precificação 11.GuiaControle 11.1.Orçamento 11.2.Campanha 11.3.Vendas 11.4.Planilha 12.Configurações. Produtos: Creatina(8%), Microfone(22%), Fone(17%), PS5(12%), Samsung(5%). Se não souber: escreva ESCALAR_SUPORTE no início.`;
   try{
-    const r=await fetch('http://127.0.0.1:5000/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`${ctx}
+    const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`${ctx}
 
 Pergunta${loc}: ${texto}`}]})});
     const d=await r.json();const resp=d.content.map(x=>x.text||'').join('').trim();
@@ -2578,7 +2527,7 @@ async function gerarCopyIASettings(){
   if(!txtEl) return;
   txtEl.value='⚡ Gerando com IA...';
   try{
-    const r=await fetch('http://127.0.0.1:5000/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Crie legenda viral Instagram para ${ML.nome} (${ML.cat}, comissão ${ML.comissao}). Link: ${ML.link}. Tom urgência. 5 linhas + 10 hashtags.`}]})});
+    const r=await fetch('https://trafego-pago-brasil-production.up.railway.app/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Crie legenda viral Instagram para ${ML.nome} (${ML.cat}, comissão ${ML.comissao}). Link: ${ML.link}. Tom urgência. 5 linhas + 10 hashtags.`}]})});
     const d=await r.json();
     txtEl.value=d.content.map(x=>x.text||'').join('').trim();
     toast('✅ Copy gerado!');
@@ -2693,85 +2642,39 @@ function carregarCopyCriatina(){
 const _cacheML = {};
 
 async function buscarImagensCarrossel(texto, linkProduto){
-  // ── Passo 0: imagens cadastradas manualmente (máxima prioridade) ──
+  console.log('[ML] buscarImagensCarrossel:', {texto, linkProduto});
   const imgsSalvas = getProdImgs();
   for(const [key, urls] of Object.entries(imgsSalvas)){
     if(texto && texto.toLowerCase().includes(key.toLowerCase()) && urls && urls.length >= 1){
-      console.log('✅ Imagens cadastradas:', key, urls);
+      console.log('[ML] Usando imagens manuais para:', key);
       return urls.slice(0,3);
     }
   }
-
-  // ── Passo 1: buscar link do produto no catálogo ──
   let linkParaBuscar = linkProduto;
   if(!linkParaBuscar && texto){
     const prodEncontrado = PRODUTOS.find(p => texto.toLowerCase().includes(p.nome.split(' ')[0].toLowerCase()));
     if(prodEncontrado) linkParaBuscar = prodEncontrado.link;
   }
-  if(!linkParaBuscar) linkParaBuscar = ML.link; // fallback produto padrão
-
-  // ── Passo 2: checar cache em memória ──
-  if(_cacheML[linkParaBuscar]){
-    console.log('✅ Cache ML:', _cacheML[linkParaBuscar]);
-    return _cacheML[linkParaBuscar];
+  if(!linkParaBuscar) linkParaBuscar = ML.link;
+  if(!linkParaBuscar) {
+    console.log('[ML] Sem link para buscar');
+    return [];
   }
-
-  // ── Passo 3: API ML oficial pelo link do produto ──
+  if(window._ultimoML?.imagens?.length && window._ultimoML.permalink === linkParaBuscar){
+    console.log('[ML] Reusando imagens do _ultimoML:', window._ultimoML.imagens.length);
+    return window._ultimoML.imagens.slice(0,3);
+  }
+  if(_cacheML[linkParaBuscar]?.length){
+    console.log('[ML] Usando _cacheML:', _cacheML[linkParaBuscar].length);
+    return _cacheML[linkParaBuscar].slice(0,3);
+  }
+  console.log('[ML] Buscando no Railway via buscarDadosProdutoML');
   const dadosML = await buscarDadosProdutoML(linkParaBuscar);
-  if(dadosML && dadosML.imagens && dadosML.imagens.length >= 1){
-    console.log('✅ API ML oficial:', dadosML.imagens);
-    _cacheML[linkParaBuscar] = dadosML.imagens;
-    return dadosML.imagens;
+  if(dadosML?.imagens?.length >= 1){
+    return dadosML.imagens.slice(0,3);
   }
-
-  // ── Passo 4: buscar por query na API ML search ──
-  const nomeProd = !texto ? 'Creatina' :
-    texto.includes('Creatina') ? 'Creatina' :
-    texto.includes('Microfone')||texto.includes('Lapela') ? 'Microfone' :
-    texto.includes('Fone')||texto.includes('Bluetooth') ? 'Fone' :
-    texto.includes('PS5')||texto.includes('PlayStation') ? 'PS5' :
-    texto.includes('Samsung')||texto.includes('Galaxy') ? 'Samsung' : 'Creatina';
-
-  const queries = {
-    'Creatina': 'creatina growth 250g suplemento',
-    'Microfone': 'microfone lapela sem fio celular',
-    'Fone': 'fone ouvido bluetooth sem fio',
-    'PS5': 'playstation 5 slim console sony',
-    'Samsung': 'samsung galaxy a07 smartphone',
-  };
-  const q = queries[nomeProd]||nomeProd;
-
-  for(const endpoint of [
-    `https://corsproxy.io/?${encodeURIComponent('https://api.mercadolibre.com/sites/MLB/search?q='+encodeURIComponent(q)+'&limit=8')}`,
-    `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(q)}&limit=8`,
-  ]){
-    try {
-      const r = await fetch(endpoint);
-      if(!r.ok) continue;
-      const d = await r.json();
-      const imgs = (d.results||[]).slice(0,8).map(it => {
-        const t = (it.thumbnail||'').replace('http://','https://');
-        return t.replace(/-[A-Z]\.jpg$/, '-F.jpg').replace(/-[A-Z]\.webp$/, '-F.webp');
-      }).filter(u => u.startsWith('https') && u.includes('mlstatic.com'));
-      const uniq = [...new Set(imgs)].slice(0,3);
-      if(uniq.length >= 1){
-        console.log('✅ ML search:', uniq);
-        _cacheML[linkParaBuscar] = uniq;
-        return uniq;
-      }
-    } catch(e){ console.log('ML search endpoint:', e.message); }
-  }
-
-  // ── Passo 5: fallback imagens fixas por produto ──
-  const imgFixas = {
-    'Creatina':  ['https://http2.mlstatic.com/D_NQ_NP_2X_714856-MLB72672434820_112023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_971671-MLB72672434821_112023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_683898-MLB72672434822_112023-F.webp'],
-    'Microfone': ['https://http2.mlstatic.com/D_NQ_NP_2X_781869-MLB74994539124_032024-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_923018-MLB74994539125_032024-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_612047-MLB74994539126_032024-F.webp'],
-    'Fone':      ['https://http2.mlstatic.com/D_NQ_NP_2X_944879-MLB71773680716_092023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_697128-MLB71773680717_092023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_834752-MLB71773680718_092023-F.webp'],
-    'PS5':       ['https://http2.mlstatic.com/D_NQ_NP_2X_619073-MLB73126764959_122023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_882341-MLB73126764960_122023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_741695-MLB73126764961_122023-F.webp'],
-    'Samsung':   ['https://http2.mlstatic.com/D_NQ_NP_2X_901238-MLB68493821473_032023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_764523-MLB68493821474_032023-F.webp','https://http2.mlstatic.com/D_NQ_NP_2X_538906-MLB68493821475_032023-F.webp'],
-  };
-  console.log('⚠ Usando imagens fixas para', nomeProd);
-  return imgFixas[nomeProd] || imgFixas["Creatina"];
+  console.error('[ML] Nenhuma imagem encontrada. Railway falhou ou produto sem foto.');
+  return [];
 }
 
 // ======= PUBLICAR AGORA DO FORMULÁRIO =======
