@@ -506,8 +506,10 @@ async function proxiarImagemML(ml_image_url){
 }
 
 // ======= CATÁLOGO DE PRODUTOS =======
+// Imagem pré-cadastrada da Creatina
+const IMG_CREATINA = 'https://http2.mlstatic.com/D_NQ_NP_2X_662415-MLA97812910758_112025-F.webp';
 const PRODUTOS = [
-  {id:1, nome:'Creatina Growth 250g',    link:'https://meli.la/1FwviqM',  comissao:'16%', emoji:'💪', cat:'Suplementos',  formato:['Reels','Stories','Feed'], tom:'Transformação'},
+  {id:1, nome:'Creatina Growth 250g',    link:'https://meli.la/1FwviqM',  comissao:'16%', emoji:'💪', cat:'Suplementos',  formato:['Reels','Stories','Feed'], tom:'Transformação', img:'https://http2.mlstatic.com/D_NQ_NP_2X_662415-MLA97812910758_112025-F.webp'},
   {id:2, nome:'Microfone Lapela',         link:'https://meli.la/2GijXiS',  comissao:'22%', emoji:'🎙', cat:'Tecnologia',   formato:['Reels','Feed','Stories'], tom:'Curiosidade'},
   {id:3, nome:'Fone Bluetooth',           link:'https://meli.la/29dn1hm',  comissao:'17%', emoji:'🎧', cat:'Tecnologia',   formato:['Reels','Stories','Feed'], tom:'Prova Social'},
   {id:4, nome:'PS5 Slim',                 link:'https://meli.la/21TPyEG',  comissao:'12%', emoji:'🎮', cat:'Games',        formato:['Reels','Feed'],           tom:'Urgência'},
@@ -2666,6 +2668,13 @@ function carregarCopyCriatina(){
 const _cacheML = {};
 
 async function buscarImagensCarrossel(texto, linkProduto){
+  // Imagem pré-cadastrada da Creatina
+  if(texto&&texto.toLowerCase().includes('creatina')){
+    return ['https://http2.mlstatic.com/D_NQ_NP_2X_662415-MLA97812910758_112025-F.webp'];
+  }
+  if(linkProduto&&linkProduto.includes('1FwviqM')){
+    return ['https://http2.mlstatic.com/D_NQ_NP_2X_662415-MLA97812910758_112025-F.webp'];
+  }
   console.log('[ML] buscarImagensCarrossel:', {texto, linkProduto});
   const imgsSalvas = getProdImgs();
   for(const [key, urls] of Object.entries(imgsSalvas)){
