@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tráfego Pago Brasil</title>
+<title>Tráfego Pago Brasil v13</title>
 <style>
 :root{
   --bg:#0a0a0f;--ink:#12121a;--ink2:#1a1a26;--line:#2a2a3a;
@@ -1240,8 +1240,13 @@ function rAff(){
         <div><div id="prod-atual-nome" style="font-weight:700;font-size:16px">${ML.nome}</div><div style="font-size:12px;color:var(--text2);margin-top:4px">${ML.cat}</div></div>
         <div style="display:flex;gap:8px"><span class="badge badge-green">${ML.comissao}</span><span class="badge badge-blue">${ML.preco}</span></div>
       </div>
-      <div class="form-row"><label>Link de afiliado</label>
-        <div style="display:flex;gap:8px"><input value="${ML.link}" readonly id="affLink"><button class="btn btn-ghost btn-sm" onclick="copiarTexto(document.getElementById('affLink').value,this)">📋</button></div>
+      <div class="form-row"><label>Link de Afiliado</label>
+        <div style="display:flex;gap:8px">
+          <input id="affLink" value="${ML.link}" placeholder="https://meli.la/..." oninput="atualizarLinkAfiliado()">
+          <button class="btn btn-ghost btn-sm" onclick="copiarTexto(document.getElementById('affLink').value,this)">📋</button>
+          <button class="btn btn-primary btn-sm" onclick="salvarLinkAfiliado()">💾 Salvar</button>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:5px">Cole https://meli.la/XXXX → Salvar. Fixo no final de cada post.</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <a href="${ML.link}" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none">↗ Ver no ML</a>
@@ -1606,7 +1611,7 @@ function rPublisher(){
     <div class="card"><div class="card-title">9. Novo Agendamento</div>
       <div class="form-row"><label>Conteúdo</label><textarea id="pubTxt" rows="4" placeholder="Cole o copy ou importe dos criativos..."></textarea></div>
       <div class="form-row"><label>Link</label><div class="flex gap-8"><input id="pubLink" value="${ML.link}"><button class="btn btn-ghost btn-sm" onclick="const t=document.getElementById('pubTxt');if(t.value&&!t.value.includes(document.getElementById('pubLink').value)){t.value+='\n\n'+document.getElementById('pubLink').value;toast('✓ Link adicionado!');}">+Link</button></div></div>
-      <div class="form-row"><label>Plataforma</label><select id="pubPlat"><option value="instagram">Instagram @${ML.ig}</option><option value="facebook">Facebook</option></select></div>
+      <div class="form-row"><label>Plataforma</label><select id="pubPlat"><option value="instagram">Instagram @${ML.ig}</option><option value="facebook">Facebook</option><option value="tiktok">TikTok (exportar)</option><option value="google_ads">Google Ads (exportar)</option></select></div>
       <div class="form-row"><label>Data e Hora</label><input type="datetime-local" id="pubDt" value="${dtLocal}" min="${agoraLocal}"></div>
       <div class="form-row"><label>Repetição</label><select id="pubRep"><option value="none">Uma vez</option><option value="daily">Diário</option><option value="weekly">Semanal</option></select></div>
       <div class="flex gap-8 mt-4"><button class="btn btn-primary" onclick="agendarPost()" style="flex:1">📅 Agendar</button><button class="btn btn-green" onclick="publicarAgoraForm()" style="flex:1">🚀 Publicar Agora</button><button class="btn btn-ghost btn-sm" onclick="importarCriativo()">⚡ Importar</button></div>
@@ -1628,17 +1633,36 @@ function rPublisher(){
       if(txtEl && !txtEl.value.trim()){
         txtEl.value = pending.titulo + (pending.preco ? '\n\nPreço: '+pending.preco : '') + (pending.hashtagsIG ? '\n\n'+pending.hashtagsIG : '');
       }
-      if(lnkEl && pending.link) lnkEl.value = pending.link;
+      if(lnkEl){ lnkEl.value = pending.link || localStorage.getItem('linkAfiliadoAtual') || ML.link; }
     }
   }catch(e){}
 }
 function importarCriativo(){if(window._CR&&window._CR.copies&&window._CR.copies[0]){document.getElementById('pubTxt').value=window._CR.copies[0].texto+'\n\n'+(window._CL||ML.link);toast('\u2713 Copy importado!');}else{toast('⚠ Gere criativos primeiro','var(--amber)');}}
+// ======= LINK AFILIADO =======
+function salvarLinkAfiliado(){
+  var link=(document.getElementById('affLink')||{}).value;
+  if(!link||!link.trim()){toast('Cole o link de afiliado primeiro','var(--amber)');return;}
+  link=link.trim(); ML.link=link;
+  localStorage.setItem('linkAfiliadoAtual',link);
+  toast('Link de afiliado salvo!','var(--green)');
+}
+function atualizarLinkAfiliado(){
+  var link=(document.getElementById('affLink')||{}).value;
+  if(link&&link.trim()){ML.link=link.trim();localStorage.setItem('linkAfiliadoAtual',link.trim());}
+}
+(function(){var s=localStorage.getItem('linkAfiliadoAtual');if(s&&s.startsWith('http'))ML.link=s;})();
 function agendarPost(){
-  const txt=document.getElementById('pubTxt').value.trim(),dt=document.getElementById('pubDt').value;
-  if(!txt){toast('⚠ Digite o conteúdo','var(--amber)');return;}
-  if(!dt){toast('⚠ Selecione data e hora','var(--amber)');return;}
+  var txtEl=document.getElementById('pubTxt'),lnkEl=document.getElementById('pubLink');
+  var txt=(txtEl?txtEl.value:'').trim(),dt=document.getElementById('pubDt').value;
+  if(!txt){toast('Digite o conteudo','var(--amber)');return;}
+  if(!dt){toast('Selecione data e hora','var(--amber)');return;}
+  var link=lnkEl?lnkEl.value.trim():ML.link;
+  if(link&&!txt.includes(link)&&!txt.includes('meli.la')&&!txt.includes('mercadolivre')){
+    txt+='\n\n🔗 Compre aqui: '+link;
+    if(txtEl)txtEl.value=txt;
+  }
   pubQueue.unshift({id:Date.now(),texto:txt,dt,plat:document.getElementById('pubPlat').value,rep:document.getElementById('pubRep').value,status:'agendado',criado:new Date().toISOString()});
-  savePubQueue(); toast('✓ Agendado para '+new Date(dt).toLocaleString('pt-BR')); rPublisher();
+  savePubQueue(); toast('Agendado: '+new Date(dt).toLocaleString('pt-BR')); rPublisher();
 }
 function removerAgend(i){pubQueue.splice(i,1);savePubQueue();rPublisher();}
 async function publicarAgora(i){
