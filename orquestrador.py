@@ -122,8 +122,9 @@ def buscar_produto_ml():
 
     def proxiar_imagens(imagens):
         """Converte URLs ML para proxy do Railway"""
-        railway = RAILWAY_URL or 'https://trafego-pago-brasil-production.up.railway.app'
-        return [f"{railway}/img-proxy?url={requests.utils.quote(u, safe='')}" for u in imagens]
+        if not RAILWAY_URL:
+            return imagens
+        return [f"{RAILWAY_URL}/img-proxy?url={requests.utils.quote(u, safe='')}" for u in imagens]
 
     try:
         produto = None
