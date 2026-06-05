@@ -1277,6 +1277,17 @@ async function buscarProdutoDoLink(){
   btn.textContent = '🔍 Buscar';
 
   if(!dados){
+    // Antes de qualquer coisa, verificar se já temos imagem cadastrada manualmente
+    const imgsCadastradas = getProdImgs();
+    for(const [key, urls] of Object.entries(imgsCadastradas)){
+      if(urls && urls.length > 0){
+        // Temos imagens! Usar elas mesmo sem API
+        dados = {titulo: ML.nome, preco: ML.preco, descricao: '', imagens: urls, fonte: 'cadastro_manual', itemId: extrairMLBId(link), permalink: link};
+        break;
+      }
+    }
+  }
+  if(!dados){
     // API falhou mas temos o link — usar fallback com dados extraídos da URL
     const itemIdFallback = extrairMLBId(link);
     if(itemIdFallback){
@@ -2668,12 +2679,16 @@ function carregarCopyCriatina(){
 const _cacheML = {};
 
 async function buscarImagensCarrossel(texto, linkProduto){
-  // Imagem pré-cadastrada da Creatina
-  if(texto&&texto.toLowerCase().includes('creatina')){
-    return ['https://http2.mlstatic.com/D_NQ_NP_2X_662415-MLA97812910758_112025-F.webp'];
-  }
-  if(linkProduto&&linkProduto.includes('1FwviqM')){
-    return ['https://http2.mlstatic.com/D_NQ_NP_2X_662415-MLA97812910758_112025-F.webp'];
+  // SEMPRE verificar imagens cadastradas manualmente PRIMEIRO
+  const imgsSalvas = getProdImgs();
+  for(const [key, urls] of Object.entries(imgsSalvas)){
+    if(urls && urls.length >= 1){
+      // Se tem alguma imagem cadastrada, usar ela
+      if(!texto || texto.toLowerCase().includes(key.toLowerCase()) || Object.keys(imgsSalvas).length === 1){
+        console.log('[IMG] Usando imagem cadastrada para:', key);
+        return urls.slice(0,3);
+      }
+    }
   }
   console.log('[ML] buscarImagensCarrossel:', {texto, linkProduto});
   const imgsSalvas = getProdImgs();
