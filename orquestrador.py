@@ -168,6 +168,31 @@ def buscar_produto_ml():
                 'imagens_originais': imagens,
                 'permalink': produto.get('permalink', link), 'fonte': 'ml_items_api'})
 
+        # Fallback: tentar scraping da página do ML para pegar imagem
+        try:
+            r_page = requests.get(url_para_resolver if 'meli.la' not in link else link,
+                allow_redirects=True, timeout=15,
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+            import json as _json
+            # Buscar imagens no JSON embutido na página
+            imgs_fallback = []
+            for pattern in [r'"pictures":\s*\[([^\]]+)\]', r'"url":"(https://http2\.mlstatic\.com[^"]+)"']:
+                matches = re.findall(pattern, r_page.text)
+                for m in matches:
+                    urls = re.findall(r'https://http2\.mlstatic\.com[^"\s]+', m if isinstance(m, str) else str(m))
+                    imgs_fallback.extend(urls)
+            # Limpar e converter para alta qualidade
+            imgs_fallback = [re.sub(r'-[A-Z](\.(jpg|webp|png))$', r'-F', u, flags=re.IGNORECASE)
+                           for u in list(dict.fromkeys(imgs_fallback)) if 'mlstatic' in u][:5]
+            if imgs_fallback:
+                return jsonify({'item_id': item_id or catalog_id or 'fallback',
+                    'titulo': '', 'preco': '',
+                    'imagens': proxiar_imagens(imgs_fallback),
+                    'imagens_originais': imgs_fallback,
+                    'permalink': link, 'fonte': 'ml_scraping_fallback'})
+        except Exception as ef:
+            print(f"Erro fallback scraping: {ef}")
+
         return jsonify({"error": "Produto nao encontrado", "item_id": item_id, "catalog_id": catalog_id}), 404
 
     except Exception as e:
