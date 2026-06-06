@@ -2729,115 +2729,121 @@ function rPostarRapido(){
   var token = localStorage.getItem('fbPageToken');
   var igUserId = localStorage.getItem('igUserId');
   var temToken = !!(token && igUserId);
-  var html = '<div style="max-width:700px;margin:0 auto;padding:10px 0 40px">';
+  var statusToken = temToken
+    ? '<div style="background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:#2ecc71">Token configurado - pronto para postar</div>'
+    : '<div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0a500">Token nao configurado - va em Configuracoes</div>';
+
+  var html = '<div style="max-width:860px;margin:0 auto;padding:10px 0 40px">';
   html += '<div class="card mb-16" style="border-color:rgba(79,142,247,.3)">';
-  html += '<div class="card-title" style="color:#4f8ef7">Postar Rapido - ate 5 produtos de uma vez</div>';
-  html += '<div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7">Cole a <b>URL do produto</b> e a <b>URL da imagem</b> (botao direito na imagem do ML -&gt; Copiar endereco da imagem). O sistema gera o texto e posta tudo.</div>';
-  if(!temToken){
-    html += '<div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--amber)">Token Meta nao configurado</div>';
-  } else {
-    html += '<div style="background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:var(--green)">Token configurado - pronto para postar</div>';
+  html += '<div class="card-title" style="color:#4f8ef7;margin-bottom:6px">Postar Rapido - 5 produtos de uma vez</div>';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">1. Cole a URL do produto (barra do navegador no ML) &nbsp; 2. Cole o link de afiliado (meli.la/...) &nbsp; 3. Copie endereco da imagem (botao direito na foto do produto)</div>';
+  html += statusToken;
+
+  // 5 produtos fixos
+  for(var i = 1; i <= 5; i++){
+    html += '<div style="background:#12121a;border:1px solid #2a2a3a;border-radius:10px;padding:12px;margin-bottom:10px">';
+    html += '<div style="font-weight:700;font-size:12px;color:#4f8ef7;margin-bottom:8px">Produto ' + i + '</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">Link de Afiliado (meli.la/...)</label>';
+    html += '<input id="pr-af-'+i+'" placeholder="https://meli.la/..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
+    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">Nome do Produto</label>';
+    html += '<input id="pr-nome-'+i+'" placeholder="Ex: Kit Gloss Franciny..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
+    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">URL da Imagem (bot. dir. na foto)</label>';
+    html += '<input id="pr-img-'+i+'" placeholder="https://http2.mlstatic.com/..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
+    html += '</div></div>';
   }
-  html += '<div id="pr-lista"></div>';
-  html += '<button onclick="prAddProduto()" id="pr-btn-add" style="width:100%;padding:10px;background:rgba(79,142,247,.08);border:1px dashed rgba(79,142,247,.4);border-radius:8px;color:#4f8ef7;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px">+ Adicionar produto (max 5)</button>';
-  html += '<button onclick="prPostarTudo()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4f8ef7,#2ecc71);border:none;border-radius:10px;color:#0a0a0f;font-size:15px;font-weight:900;cursor:pointer">POSTAR TUDO AGORA</button>';
-  html += '<div id="pr-status" style="margin-top:14px"></div>';
+
+  html += '<button onclick="prPostarTudo()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4f8ef7,#2ecc71);border:none;border-radius:10px;color:#0a0a0f;font-size:15px;font-weight:900;cursor:pointer;margin-top:6px">POSTAR TUDO AGORA</button>';
+  html += '<div id="pr-status" style="margin-top:12px"></div>';
   html += '</div></div>';
   document.getElementById('content').innerHTML = html;
-  _prCount = 0;
-  prAddProduto();
-}
-
-var _prCount = 0;
-function prAddProduto(){
-  var lista = document.getElementById('pr-lista');
-  if(!lista) return;
-  var atual = lista.querySelectorAll('.pr-item').length;
-  if(atual >= 5){ toast('Maximo 5 produtos','var(--amber)'); return; }
-  _prCount++;
-  var n = _prCount;
-  var div = document.createElement('div');
-  div.className = 'pr-item';
-  div.id = 'pr-item-' + n;
-  div.style.cssText = 'background:#12121a;border:1px solid #2a2a3a;border-radius:10px;padding:14px;margin-bottom:12px';
-  div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-    + '<span style="font-weight:700;font-size:13px;color:#4f8ef7">Produto ' + (atual+1) + '</span>'
-    + '<button onclick="document.getElementById(\'pr-item-' + n + '\').remove();prAtualizarNumeros()" style="background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);border-radius:5px;padding:3px 8px;color:#e74c3c;font-size:11px;cursor:pointer">Remover</button>'
-    + '</div>'
-    + '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">URL do Produto (mercadolivre.com.br/...)</label>'
-    + '<input id="pr-url-' + n + '" placeholder="https://www.mercadolivre.com.br/..." style="width:100%;padding:8px 10px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:6px;color:var(--text);font-size:12px;box-sizing:border-box"></div>'
-    + '<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">URL da Imagem (botao direito na imagem do produto)</label>'
-    + '<input id="pr-img-' + n + '" placeholder="https://http2.mlstatic.com/..." style="width:100%;padding:8px 10px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:6px;color:var(--text);font-size:12px;box-sizing:border-box"></div>';
-  lista.appendChild(div);
-  if(lista.querySelectorAll('.pr-item').length >= 5){
-    var btnAdd = document.getElementById('pr-btn-add');
-    if(btnAdd) btnAdd.style.display = 'none';
-  }
-}
-
-function prAtualizarNumeros(){
-  var items = document.querySelectorAll('.pr-item');
-  items.forEach(function(el,i){
-    var label = el.querySelector('span');
-    if(label) label.textContent = 'Produto '+(i+1);
-  });
-  var btnAdd = document.getElementById('pr-btn-add');
-  if(btnAdd) btnAdd.style.display = items.length >= 5 ? 'none' : 'block';
 }
 
 async function prPostarTudo(){
   var token = localStorage.getItem('fbPageToken');
   var igUserId = localStorage.getItem('igUserId');
   if(!token || !igUserId){
-    toast('Configure o Token Meta primeiro em Configuracoes','var(--red)');
+    toast('Configure o Token Meta em Configuracoes','var(--red)');
     return;
   }
-  var itens = document.querySelectorAll('.pr-item');
-  if(!itens.length){ toast('Adicione pelo menos 1 produto','var(--amber)'); return; }
   var statusDiv = document.getElementById('pr-status');
   statusDiv.innerHTML = '<div style="color:#4f8ef7;font-size:13px">Iniciando publicacoes...</div>';
-  var ok = 0, erros = 0;
+  var ok = 0, erros = 0, pulados = 0;
   var FLASK_URL = 'https://trafego-pago-brasil-production.up.railway.app';
-  for(var i = 0; i < itens.length; i++){
-    var item = itens[i];
-    var n = item.id.replace('pr-item-','');
-    var urlProd = (document.getElementById('pr-url-'+n)||{}).value||'';
-    var urlImg  = (document.getElementById('pr-img-'+n)||{}).value||'';
-    urlProd = urlProd.trim(); urlImg = urlImg.trim();
-    if(!urlProd || !urlImg){
-      statusDiv.innerHTML += '<div style="color:var(--amber);font-size:12px">Produto '+(i+1)+': campo vazio - pulado</div>';
+  var nl = String.fromCharCode(10);
+
+  for(var i = 1; i <= 5; i++){
+    var afiliado = ((document.getElementById('pr-af-'+i)||{}).value||'').trim();
+    var nome     = ((document.getElementById('pr-nome-'+i)||{}).value||'').trim();
+    var urlImg   = ((document.getElementById('pr-img-'+i)||{}).value||'').trim();
+
+    if(!afiliado && !urlImg){ pulados++; continue; }
+    if(!afiliado || !urlImg){
+      statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': preencha o link de afiliado e a imagem - pulado</div>';
       erros++; continue;
     }
-    statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px">Publicando produto '+(i+1)+'...</div>';
+    if(!nome) nome = 'Produto especial';
+
+    statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px">Publicando produto '+i+' - '+nome+'...</div>';
+
     try {
-      var nomeProd = decodeURIComponent(urlProd.split('/').filter(function(s){return s.length>8;})[0]||'Produto').replace(/-/g,' ').substring(0,50);
-      var afiliado = urlProd;
-      var nl = String.fromCharCode(10);
-      var texto = nomeProd + nl + nl + 'Qualidade garantida' + nl + 'Entrega rapida' + nl + 'Compre agora:' + nl + afiliado + nl + nl + '#oferta #mercadolivre #promocao #achados';
+      var texto = nome + nl
+        + nl
+        + 'Qualidade garantida' + nl
+        + 'Entrega rapida pelo Mercado Livre' + nl
+        + nl
+        + 'Compre agora no link abaixo:' + nl
+        + afiliado + nl
+        + nl
+        + '#oferta #mercadolivre #promocao #achados #compras #brasil';
+
+      // Proxiar imagem
       var photoUrl = urlImg;
       try {
-        var rProxy = await fetch(FLASK_URL+'/proxy-image-ml', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:urlImg})});
+        var rProxy = await fetch(FLASK_URL+'/proxy-image-ml', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({image_url: urlImg})
+        });
         var dProxy = await rProxy.json();
         if(dProxy.public_url) photoUrl = dProxy.public_url;
-      } catch(ep){}
-      var body1 = new URLSearchParams({image_url:photoUrl, caption:texto, access_token:token});
-      var r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media',{method:'POST',body:body1});
+      } catch(ep){ console.warn('proxy falhou, usando URL direta'); }
+
+      // Criar container IG
+      var body1 = new URLSearchParams({image_url: photoUrl, caption: texto, access_token: token});
+      var r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media', {method:'POST', body: body1});
       var d1 = await r1.json();
-      if(d1.error) throw new Error(d1.error.message);
-      await new Promise(function(r){setTimeout(r,8000);});
-      var body2 = new URLSearchParams({creation_id:d1.id, access_token:token});
-      var r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish',{method:'POST',body:body2});
+      if(d1.error) throw new Error(d1.error.message + (d1.error.error_user_msg ? ' - '+d1.error.error_user_msg : ''));
+
+      // Aguardar processamento
+      await new Promise(function(r){setTimeout(r,9000);});
+
+      // Verificar status
+      var rSt = await fetch('https://graph.facebook.com/v25.0/'+d1.id+'?fields=status_code&access_token='+token);
+      var dSt = await rSt.json();
+      if(dSt.status_code === 'IN_PROGRESS') await new Promise(function(r){setTimeout(r,5000);});
+      if(dSt.status_code === 'ERROR') throw new Error('Instagram rejeitou a imagem. Tente outra URL de imagem.');
+
+      // Publicar
+      var body2 = new URLSearchParams({creation_id: d1.id, access_token: token});
+      var r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish', {method:'POST', body: body2});
       var d2 = await r2.json();
       if(d2.error) throw new Error(d2.error.message);
-      statusDiv.innerHTML += '<div style="color:var(--green);font-size:12px">Produto '+(i+1)+' publicado!</div>';
+
+      statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Produto '+i+' publicado!</div>';
       ok++;
-      if(i < itens.length-1) await new Promise(function(r){setTimeout(r,3000);});
+      if(i < 5) await new Promise(function(r){setTimeout(r,3000);});
+
     } catch(err) {
-      statusDiv.innerHTML += '<div style="color:var(--red);font-size:12px">Erro produto '+(i+1)+': '+err.message+'</div>';
+      statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Erro produto '+i+': '+err.message+'</div>';
       erros++;
     }
   }
-  statusDiv.innerHTML += '<div style="margin-top:10px;padding:10px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:8px;font-size:13px;font-weight:700;color:var(--green)">Concluido: '+ok+' publicado(s)'+(erros>0?', '+erros+' erro(s)':'')+' </div>';
+
+  var cor = ok > 0 ? 'rgba(46,204,113,.2)' : 'rgba(231,76,60,.2)';
+  var textoCor = ok > 0 ? '#2ecc71' : '#e74c3c';
+  statusDiv.innerHTML += '<div style="margin-top:10px;padding:12px;background:'+cor+';border-radius:8px;font-size:13px;font-weight:700;color:'+textoCor+'">'
+    + ok+' publicado(s)'+(erros>0 ? ', '+erros+' erro(s)':'')+(pulados>0?' ('+pulados+' vazios ignorados)':'')
+    +'</div>';
 }
 
 // ======= INIT =======
