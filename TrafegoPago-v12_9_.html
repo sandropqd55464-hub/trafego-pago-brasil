@@ -1637,7 +1637,8 @@ function agendarPost(){
   const txt=document.getElementById('pubTxt').value.trim(),dt=document.getElementById('pubDt').value;
   if(!txt){toast('⚠ Digite o conteúdo','var(--amber)');return;}
   if(!dt){toast('⚠ Selecione data e hora','var(--amber)');return;}
-  pubQueue.unshift({id:Date.now(),texto:txt,dt,plat:document.getElementById('pubPlat').value,rep:document.getElementById('pubRep').value,status:'agendado',criado:new Date().toISOString()});
+  const link=document.getElementById('pubLink')?.value||ML.link;
+  pubQueue.unshift({id:Date.now(),texto:txt,dt,plat:document.getElementById('pubPlat').value,rep:document.getElementById('pubRep').value,status:'agendado',criado:new Date().toISOString(),link});
   savePubQueue(); toast('✓ Agendado para '+new Date(dt).toLocaleString('pt-BR')); rPublisher();
 }
 function removerAgend(i){pubQueue.splice(i,1);savePubQueue();rPublisher();}
@@ -1683,9 +1684,15 @@ async function publicarAgora(i){
       if(!photo_url) throw new Error('Imagem n\u00e3o encontrada. Verifique se o Flask est\u00e1 rodando em '+FLASK_BASE);
 
       // Passo 1: criar container de mídia no Instagram
+      const linkAfiliado = p.link || document.getElementById('pubLink')?.value || ML.link || '';
+      const textoFinal = linkAfiliado && !p.texto.includes(linkAfiliado)
+        ? p.texto + '
+
+🔗 ' + linkAfiliado
+        : p.texto;
       const containerBody = new URLSearchParams({
         image_url: photo_url,
-        caption: p.texto,
+        caption: textoFinal,
         access_token: token,
       });
       const r1 = await fetch(`https://graph.facebook.com/v25.0/${igUserId}/media`, {method:'POST', body: containerBody});
@@ -1726,7 +1733,9 @@ async function publicarAgora(i){
         throw new Error('Configure o Page Access Token + Page ID nas ⚙ Configurações');
       }
       const fbBody = new URLSearchParams({
-        message: p.texto,
+        message: (()=>{ const lk=p.link||document.getElementById("pubLink")?.value||ML.link||""; return lk&&!p.texto.includes(lk)?p.texto+"
+
+🔗 "+lk:p.texto; })(),
         access_token: token,
       });
       // Tentar adicionar imagem se disponível
