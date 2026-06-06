@@ -149,6 +149,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="sb-item" onclick="setMod('publisher',this)" title="Item 9">
       <span class="sb-num">9.</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Publisher Engine
     </div>
+    <div class="sb-item" onclick="setMod('postarrpido',this)" title="Postar Rápido" style="background:rgba(79,142,247,.08);border-left:2px solid rgba(79,142,247,.5)">
+      <span class="sb-num" style="color:#4f8ef7">🚀</span><svg viewBox="0 0 24 24" fill="none" stroke="#4f8ef7" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span style="color:#4f8ef7;font-weight:800">Postar Rápido</span>
+    </div>
     <div class="sb-item" onclick="setMod('imgs',this)" title="Imagens" style="background:rgba(46,204,113,.06);border-left:2px solid rgba(46,204,113,.4)">
       <span class="sb-num" style="color:#2ecc71">📸</span><svg viewBox="0 0 24 24" fill="none" stroke="#2ecc71" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span style="color:#2ecc71;font-weight:700">Imagens Produtos</span></div>
     <div class="sb-item" onclick="setMod('pricing',this)" title="Item 10">
@@ -733,7 +736,7 @@ function removerVenda(i){
 }
 
 // ======= NAV =======
-const TITLES = {imgs:'📸 Imagens dos Produtos',dashboard:'Dashboard',campaigns:'Campanhas',new:'Nova Campanha',antiban:'Anti-Ban Scanner',hashtags:'Hashtags IA',monitor:'Monitor 24/7',creatives:'Motor de Criativos Virais',autopilot:'Autopiloto de Tráfego',autoconteudo:'Autopiloto de Conteúdo',fulldash:'Performance Dashboard',tracker:'Rastreamento & Conversão',affiliates:'Afiliados ML',publisher:'Publisher Engine',pricing:'Precificação IA',mktsettings:'Configurações',guia:'Guia & Controle',marketplace:'Meta Marketplace'};
+const TITLES = {imgs:'📸 Imagens dos Produtos',postarrpido:'🚀 Postar Rápido',dashboard:'Dashboard',campaigns:'Campanhas',new:'Nova Campanha',antiban:'Anti-Ban Scanner',hashtags:'Hashtags IA',monitor:'Monitor 24/7',creatives:'Motor de Criativos Virais',autopilot:'Autopiloto de Tráfego',autoconteudo:'Autopiloto de Conteúdo',fulldash:'Performance Dashboard',tracker:'Rastreamento & Conversão',affiliates:'Afiliados ML',publisher:'Publisher Engine',pricing:'Precificação IA',mktsettings:'Configurações',guia:'Guia & Controle',marketplace:'Meta Marketplace'};
 
 // Histórico de navegação
 let navHistory = [];
@@ -763,7 +766,7 @@ function voltarPagina(){
   if(btnV) btnV.style.display = navHistory.length > 0 ? 'inline-flex' : 'none';
   const bc = document.getElementById('breadcrumb');
   if(bc) bc.textContent = navHistory.map(h=>TITLES[h]||h).join(' › ') + (navHistory.length>0?' › ':'') + (TITLES[anterior]||anterior);
-  const fns = {imgs:rCadastrarImagens,dashboard:rDash,campaigns:rCamps,new:rNew,creatives:rCreatives,autopilot:rAuto,autoconteudo:rAutoConteudo,antiban:rAntiban,hashtags:rHashtags,fulldash:rFull,tracker:rTracker,monitor:rMonitor,affiliates:rAff,publisher:rPublisher,pricing:rPricing,mktsettings:rSettings,guia:rGuia,marketplace:rMarketplace};
+  const fns = {imgs:rCadastrarImagens,dashboard:rDash,campaigns:rCamps,new:rNew,creatives:rCreatives,autopilot:rAuto,autoconteudo:rAutoConteudo,antiban:rAntiban,hashtags:rHashtags,fulldash:rFull,tracker:rTracker,monitor:rMonitor,affiliates:rAff,publisher:rPublisher,postarrpido:rPostarRapido,pricing:rPricing,mktsettings:rSettings,guia:rGuia,marketplace:rMarketplace};
   document.getElementById('content').innerHTML='';
   if(fns[anterior]) fns[anterior]();
 }
@@ -786,7 +789,7 @@ function setMod(name, el){
   const bc = document.getElementById('breadcrumb');
   if(bc) bc.textContent = navHistory.map(h=>TITLES[h]||h).join(' › ') + (navHistory.length>0?' › ':'') + (TITLES[name]||name);
 
-  const fns = {imgs:rCadastrarImagens,dashboard:rDash,campaigns:rCamps,new:rNew,creatives:rCreatives,autopilot:rAuto,autoconteudo:rAutoConteudo,antiban:rAntiban,hashtags:rHashtags,fulldash:rFull,tracker:rTracker,monitor:rMonitor,affiliates:rAff,publisher:rPublisher,pricing:rPricing,mktsettings:rSettings,guia:rGuia,marketplace:rMarketplace};
+  const fns = {imgs:rCadastrarImagens,dashboard:rDash,campaigns:rCamps,new:rNew,creatives:rCreatives,autopilot:rAuto,autoconteudo:rAutoConteudo,antiban:rAntiban,hashtags:rHashtags,fulldash:rFull,tracker:rTracker,monitor:rMonitor,affiliates:rAff,publisher:rPublisher,postarrpido:rPostarRapido,pricing:rPricing,mktsettings:rSettings,guia:rGuia,marketplace:rMarketplace};
   document.getElementById('content').innerHTML='';
   if(fns[name]) fns[name]();
 }
@@ -2720,6 +2723,151 @@ async function publicarAgoraForm(){
   await publicarAgora(0);
   rPublisher();
 }
+
+// ======= POSTAR RÁPIDO =======
+function rPostarRapido(){
+  const token = localStorage.getItem('fbPageToken');
+  const igUserId = localStorage.getItem('igUserId');
+  const temToken = !!(token && igUserId);
+
+  document.getElementById('content').innerHTML = `
+  <div style="max-width:700px;margin:0 auto;padding:10px 0 40px">
+    <div class="card mb-16" style="border-color:rgba(79,142,247,.3)">
+      <div class="card-title" style="color:#4f8ef7">🚀 Postar Rápido — até 5 produtos de uma vez</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7">
+        Cole a <strong style="color:var(--text)">URL do produto</strong> + a <strong style="color:var(--text)">URL da imagem</strong> (botão direito na imagem → copiar endereço da imagem).<br>
+        O sistema gera o texto automaticamente e posta tudo de uma vez.
+      </div>
+      ${!temToken ? '<div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--amber)">⚠ Token Meta não configurado — <button onclick="setMod('mktsettings',null)" style="background:none;border:none;color:var(--amber);text-decoration:underline;cursor:pointer;font-size:12px">configurar agora</button></div>' : '<div style="background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:var(--green)">✅ Token configurado — pronto para postar</div>'}
+      <div id="pr-lista"></div>
+      <button onclick="prAddProduto()" id="pr-btn-add" style="width:100%;padding:10px;background:rgba(79,142,247,.08);border:1px dashed rgba(79,142,247,.4);border-radius:8px;color:#4f8ef7;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px">+ Adicionar produto (máx 5)</button>
+      <button onclick="prPostarTudo()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4f8ef7,#2ecc71);border:none;border-radius:10px;color:#0a0a0f;font-size:15px;font-weight:900;cursor:pointer">🚀 POSTAR TUDO AGORA</button>
+      <div id="pr-status" style="margin-top:14px"></div>
+    </div>
+  </div>`;
+  prAddProduto();
+}
+
+let _prCount = 0;
+function prAddProduto(){
+  const lista = document.getElementById('pr-lista');
+  if(!lista) return;
+  const atual = lista.querySelectorAll('.pr-item').length;
+  if(atual >= 5){ toast('Máximo 5 produtos','var(--amber)'); return; }
+  _prCount++;
+  const n = _prCount;
+  const div = document.createElement('div');
+  div.className = 'pr-item';
+  div.id = 'pr-item-' + n;
+  div.style.cssText = 'background:#12121a;border:1px solid #2a2a3a;border-radius:10px;padding:14px;margin-bottom:12px;position:relative';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-weight:700;font-size:13px;color:#4f8ef7">Produto ${atual+1}</span>
+      <button onclick="document.getElementById('pr-item-${n}').remove();prAtualizarNumeros()" style="background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);border-radius:5px;padding:3px 8px;color:#e74c3c;font-size:11px;cursor:pointer">✕ Remover</button>
+    </div>
+    <div style="margin-bottom:8px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">URL do Produto (mercadolivre.com.br/...)</label>
+      <input id="pr-url-${n}" placeholder="https://www.mercadolivre.com.br/..." style="width:100%;padding:8px 10px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:6px;color:var(--text);font-size:12px;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:4px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">URL da Imagem (botão direito → copiar endereço da imagem)</label>
+      <input id="pr-img-${n}" placeholder="https://http2.mlstatic.com/..." style="width:100%;padding:8px 10px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:6px;color:var(--text);font-size:12px;box-sizing:border-box">
+    </div>`;
+  lista.appendChild(div);
+  if(lista.querySelectorAll('.pr-item').length >= 5){
+    const btnAdd = document.getElementById('pr-btn-add');
+    if(btnAdd) btnAdd.style.display = 'none';
+  }
+}
+
+function prAtualizarNumeros(){
+  document.querySelectorAll('.pr-item').forEach((el,i)=>{
+    const label = el.querySelector('span');
+    if(label) label.textContent = 'Produto '+(i+1);
+  });
+  const btnAdd = document.getElementById('pr-btn-add');
+  const total = document.querySelectorAll('.pr-item').length;
+  if(btnAdd) btnAdd.style.display = total >= 5 ? 'none' : 'block';
+}
+
+async function prPostarTudo(){
+  const token = localStorage.getItem('fbPageToken');
+  const igUserId = localStorage.getItem('igUserId');
+  if(!token || !igUserId){
+    toast('❌ Configure o Token Meta primeiro em Configurações','var(--red)');
+    return;
+  }
+  const itens = document.querySelectorAll('.pr-item');
+  if(!itens.length){ toast('⚠ Adicione pelo menos 1 produto','var(--amber)'); return; }
+
+  const statusDiv = document.getElementById('pr-status');
+  statusDiv.innerHTML = '<div style="color:#4f8ef7;font-size:13px">⏳ Iniciando publicações...</div>';
+
+  let ok = 0, erros = 0;
+  for(let i = 0; i < itens.length; i++){
+    const item = itens[i];
+    const n = item.id.replace('pr-item-','');
+    const urlProd = document.getElementById('pr-url-'+n)?.value.trim();
+    const urlImg  = document.getElementById('pr-img-'+n)?.value.trim();
+
+    if(!urlProd || !urlImg){
+      statusDiv.innerHTML += '<div style="color:var(--amber);font-size:12px">⚠ Produto '+(i+1)+': URL ou imagem em branco — pulado</div>';
+      erros++;
+      continue;
+    }
+
+    statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px">📤 Publicando produto '+(i+1)+'...</div>';
+
+    try {
+      // Gerar texto via IA
+      const nomeEstimado = urlProd.split('/').filter(s=>s.length>10)[0]?.replace(/-/g,' ').substring(0,40) || 'Produto incrível';
+      const afiliado = localStorage.getItem('linkAfiliado') || urlProd;
+      const texto = nomeEstimado + '\n\n✅ Qualidade garantida\n✅ Entrega rápida\n🛒 Compre agora no link\n\n' + afiliado + '\n\n#oferta #mercadolivre #promoção #achados #compras';
+
+      // Proxiar imagem via Railway
+      const FLASK_URL = 'https://trafego-pago-brasil-production.up.railway.app';
+      let photoUrl = urlImg;
+      try {
+        const rProxy = await fetch(FLASK_URL+'/proxy-image-ml', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({image_url: urlImg})
+        });
+        const dProxy = await rProxy.json();
+        if(dProxy.public_url) photoUrl = dProxy.public_url;
+      } catch(ep){ console.warn('proxy falhou, usando URL direta'); }
+
+      // Validar token
+      const tc = await fetch('https://graph.facebook.com/v25.0/me?access_token='+token);
+      const td = await tc.json();
+      if(td.error && (td.error.code===190||td.error.code===102)) throw new Error('Token expirado');
+
+      // Criar container IG
+      const body1 = new URLSearchParams({image_url: photoUrl, caption: texto, access_token: token});
+      const r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media', {method:'POST', body: body1});
+      const d1 = await r1.json();
+      if(d1.error) throw new Error('IG: '+d1.error.message);
+
+      await new Promise(r=>setTimeout(r,8000));
+
+      // Publicar
+      const body2 = new URLSearchParams({creation_id: d1.id, access_token: token});
+      const r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish', {method:'POST', body: body2});
+      const d2 = await r2.json();
+      if(d2.error) throw new Error('Publish: '+d2.error.message);
+
+      statusDiv.innerHTML += '<div style="color:var(--green);font-size:12px">✅ Produto '+(i+1)+' publicado!</div>';
+      ok++;
+      if(i < itens.length-1) await new Promise(r=>setTimeout(r,3000));
+
+    } catch(err) {
+      statusDiv.innerHTML += '<div style="color:var(--red);font-size:12px">❌ Produto '+(i+1)+': '+err.message+'</div>';
+      erros++;
+    }
+  }
+
+  statusDiv.innerHTML += '<div style="margin-top:10px;padding:10px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:8px;font-size:13px;font-weight:700;color:var(--green)">🎉 Concluído: '+ok+' publicado(s)'+( erros>0 ? ', '+erros+' erro(s)':'')+' </div>';
+}
+
 // ======= INIT =======
 setMod('dashboard', document.querySelector('.sb-item'));
 // Setar data atual em inputs type=date que não têm value
