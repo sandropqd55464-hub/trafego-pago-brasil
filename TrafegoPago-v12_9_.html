@@ -2879,10 +2879,22 @@ async function prPostarTudo(){
     if(fb){
       if(!token||!pageId){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Facebook: Page ID nao configurado</div>'; }
       else { try {
-        var bfb = new URLSearchParams({url:photoUrl,caption:texto,access_token:token});
-        var rfb = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/photos',{method:'POST',body:bfb});
-        var dfb = await rfb.json();
-        if(dfb.error) throw new Error(dfb.error.message);
+        // Passo 1: upload da foto sem publicar
+        var bfb1 = new URLSearchParams({url:photoUrl, caption:texto, published:'false', access_token:token});
+        var rfb1 = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/photos',{method:'POST',body:bfb1});
+        var dfb1 = await rfb1.json();
+        if(dfb1.error) throw new Error(dfb1.error.message);
+        // Passo 2: publicar como post com a foto
+        var bfb2 = new URLSearchParams({message:texto, attached_media:'[{"media_fbid":"'+dfb1.id+'"}]', access_token:token});
+        var rfb2 = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/feed',{method:'POST',body:bfb2});
+        var dfb2 = await rfb2.json();
+        if(dfb2.error){
+          // fallback: postar so o texto com o link
+          var bfb3 = new URLSearchParams({message:texto, access_token:token});
+          var rfb3 = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/feed',{method:'POST',body:bfb3});
+          var dfb3 = await rfb3.json();
+          if(dfb3.error) throw new Error(dfb3.error.message);
+        }
         statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Facebook: publicado!</div>'; totalOk++;
       } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Facebook erro: '+e.message+'</div>'; totalErro++; } }
     }
@@ -2890,7 +2902,7 @@ async function prPostarTudo(){
     if(tt) statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">TikTok: em breve</div>';
     if(yt) statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">YouTube: em breve</div>';
 
-    await new Promise(function(r){setTimeout(r,3000);});
+    await new Promise(function(r){setTimeout(r,5000);});
   }
 
   var cor = totalOk>0?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)';
