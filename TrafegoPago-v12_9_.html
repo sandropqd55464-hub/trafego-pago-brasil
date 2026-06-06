@@ -2760,32 +2760,27 @@ function rPostarRapido(){
   html += '<button onclick="prMarcarTodos(false)" style="padding:5px;background:rgba(80,80,100,.1);border:1px solid #2a2a3a;border-radius:5px;color:#5555aa;font-size:10px;cursor:pointer">Desmarcar</button>';
   html += '</div></div></div>';
 
-  // COLUNA DIREITA - produtos
+  // COLUNA DIREITA - 2 campos por produto
   html += '<div style="flex:1">';
   html += '<div class="card mb-16" style="border-color:rgba(79,142,247,.3)">';
   html += '<div class="card-title" style="color:#4f8ef7;margin-bottom:6px">Postar Rapido</div>';
-  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Para cada produto: <b>URL do produto</b> (barra do navegador) + <b>link de afiliado</b> (meli.la) + <b>URL da imagem</b> (botao direito na foto).</div>';
-  html += '<div style="font-size:11px;color:#5555aa;margin-bottom:14px">O link de afiliado aparece no post. A URL da imagem: botao direito na foto do produto no ML → Copiar endereco da imagem.</div>';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">1. Cole a URL do produto (barra do navegador no ML) &nbsp; 2. Botao direito na foto do produto → Copiar endereco da imagem</div>';
   html += statusToken;
 
   for(var j = 1; j <= 5; j++){
     html += '<div style="background:#12121a;border:1px solid #2a2a3a;border-radius:8px;padding:10px;margin-bottom:8px">';
     html += '<div style="font-weight:700;font-size:12px;color:#4f8ef7;margin-bottom:6px">Produto '+j+'</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">';
-    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">URL do produto (mercadolivre.com.br/...)</label>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">URL do produto</label>';
     html += '<input id="pr-url-'+j+'" placeholder="https://www.mercadolivre.com.br/..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
-    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">Link de afiliado (meli.la/...)</label>';
-    html += '<input id="pr-af-'+j+'" placeholder="https://meli.la/..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid rgba(79,142,247,.3);border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
-    html += '</div>';
-    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">URL da imagem (botao direito na foto do produto → Copiar endereco da imagem)</label>';
+    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">URL da imagem (bot. dir. → Copiar endereco da imagem)</label>';
     html += '<input id="pr-img-'+j+'" placeholder="https://http2.mlstatic.com/..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
-    html += '</div>';
+    html += '</div></div>';
   }
 
   html += '<button onclick="prPostarTudo()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4f8ef7,#2ecc71);border:none;border-radius:10px;color:#0a0a0f;font-size:15px;font-weight:900;cursor:pointer;margin-top:8px">POSTAR TUDO AGORA</button>';
   html += '<div id="pr-status" style="margin-top:12px"></div>';
   html += '</div></div></div>';
-
   document.getElementById('content').innerHTML = html;
 }
 
@@ -2810,47 +2805,46 @@ async function prPostarTudo(){
 
   for(var i = 1; i <= 5; i++){
     var urlProd = ((document.getElementById('pr-url-'+i)||{}).value||'').trim();
-    var afiliado = ((document.getElementById('pr-af-'+i)||{}).value||'').trim();
-    var urlImg   = ((document.getElementById('pr-img-'+i)||{}).value||'').trim();
+    var urlImg  = ((document.getElementById('pr-img-'+i)||{}).value||'').trim();
     var ig = document.getElementById('pr-ig-'+i)&&document.getElementById('pr-ig-'+i).checked;
     var fb = document.getElementById('pr-fb-'+i)&&document.getElementById('pr-fb-'+i).checked;
     var tt = document.getElementById('pr-tt-'+i)&&document.getElementById('pr-tt-'+i).checked;
     var yt = document.getElementById('pr-yt-'+i)&&document.getElementById('pr-yt-'+i).checked;
 
-    if(!urlProd && !afiliado && !urlImg) continue;
+    if(!urlProd && !urlImg) continue;
     if(!urlImg){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': URL da imagem em branco - pulado</div>'; continue; }
-    if(!afiliado && !urlProd){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': cole a URL do produto - pulado</div>'; continue; }
+    if(!urlProd){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': URL do produto em branco - pulado</div>'; continue; }
     if(!ig && !fb && !tt && !yt){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': nenhuma plataforma marcada - pulado</div>'; continue; }
 
     statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px;margin-top:8px;font-weight:700">--- Produto '+i+' ---</div>';
 
-    // Buscar nome do produto via backend
-    var nomeProd = '';
-    var preco = '';
-    var linkBusca = urlProd || afiliado;
+    // Buscar nome e preco via backend
+    var nomeProd = '', preco = '', linkAfiliado = urlProd;
     try {
-      var rML = await fetch(FLASK_URL+'/buscar-produto-ml',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link:linkBusca})});
+      var rML = await fetch(FLASK_URL+'/buscar-produto-ml',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link:urlProd})});
       var dML = await rML.json();
       if(dML.titulo) nomeProd = dML.titulo;
       if(dML.preco) preco = dML.preco;
-    } catch(e){ console.warn('busca ML:', e.message); }
+      if(dML.permalink) linkAfiliado = dML.permalink;
+    } catch(e){}
 
-    // Se nao achou nome, extrair da URL
-    if(!nomeProd && urlProd){
-      var partes = urlProd.split('/').filter(function(s){ return s.length > 8 && !s.startsWith('http') && !s.startsWith('MLB') && !s.startsWith('p'); });
-      if(partes.length) nomeProd = partes[0].replace(/-/g,' ').substring(0,60);
+    // Extrair nome da URL se a API nao retornou
+    if(!nomeProd){
+      try {
+        var urlObj = new URL(urlProd);
+        var partes = urlObj.pathname.split('/').filter(function(s){ return s.length > 5 && !/^MLB/i.test(s) && s !== 'p'; });
+        if(partes.length) nomeProd = decodeURIComponent(partes[0]).replace(/-/g,' ');
+      } catch(e){}
     }
-    if(!nomeProd) nomeProd = 'Confira esta oferta';
-
-    var linkPost = afiliado || urlProd;
+    if(!nomeProd) nomeProd = 'Confira esta oferta incrivel';
 
     var texto = nomeProd + nl
-      + (preco ? nl + 'Por apenas ' + preco + nl : '')
+      + (preco ? nl + 'Preco: ' + preco + nl : '')
       + nl + 'Qualidade garantida' + nl
       + 'Entrega rapida pelo Mercado Livre' + nl
       + nl + 'Compre agora:' + nl
-      + linkPost + nl
-      + nl + '#oferta #mercadolivre #promocao #achados #compras #brasil #deal';
+      + linkAfiliado + nl
+      + nl + '#oferta #mercadolivre #promocao #achados #compras #brasil';
 
     // Proxiar imagem
     var photoUrl = urlImg;
@@ -2864,7 +2858,7 @@ async function prPostarTudo(){
     if(ig){
       if(!token||!igUserId){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Instagram: token nao configurado</div>'; }
       else { try {
-        var b1 = new URLSearchParams({image_url:photoUrl, caption:texto, access_token:token});
+        var b1 = new URLSearchParams({image_url:photoUrl,caption:texto,access_token:token});
         var r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media',{method:'POST',body:b1});
         var d1 = await r1.json();
         if(d1.error) throw new Error(d1.error.message);
@@ -2873,7 +2867,7 @@ async function prPostarTudo(){
         var dSt = await rSt.json();
         if(dSt.status_code==='IN_PROGRESS') await new Promise(function(r){setTimeout(r,5000);});
         if(dSt.status_code==='ERROR') throw new Error('Instagram rejeitou a imagem');
-        var b2 = new URLSearchParams({creation_id:d1.id, access_token:token});
+        var b2 = new URLSearchParams({creation_id:d1.id,access_token:token});
         var r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish',{method:'POST',body:b2});
         var d2 = await r2.json();
         if(d2.error) throw new Error(d2.error.message);
@@ -2881,11 +2875,11 @@ async function prPostarTudo(){
       } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Instagram erro: '+e.message+'</div>'; totalErro++; } }
     }
 
-    // FACEBOOK - usar photo post nao feed
+    // FACEBOOK via /photos
     if(fb){
-      if(!token||!pageId){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Facebook: Page ID nao configurado em Configuracoes</div>'; }
+      if(!token||!pageId){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Facebook: Page ID nao configurado</div>'; }
       else { try {
-        var bfb = new URLSearchParams({url:photoUrl, caption:texto, access_token:token});
+        var bfb = new URLSearchParams({url:photoUrl,caption:texto,access_token:token});
         var rfb = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/photos',{method:'POST',body:bfb});
         var dfb = await rfb.json();
         if(dfb.error) throw new Error(dfb.error.message);
@@ -2896,7 +2890,6 @@ async function prPostarTudo(){
     if(tt) statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">TikTok: em breve</div>';
     if(yt) statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">YouTube: em breve</div>';
 
-    // Espera entre produtos para nao sobrecarregar a API
     await new Promise(function(r){setTimeout(r,3000);});
   }
 
