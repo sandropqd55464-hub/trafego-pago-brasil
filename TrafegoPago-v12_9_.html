@@ -2832,8 +2832,15 @@ async function prPostarTudo(){
     if(!nomeProd){
       try {
         var urlObj = new URL(urlProd);
-        var partes = urlObj.pathname.split('/').filter(function(s){ return s.length > 5 && !/^MLB/i.test(s) && s !== 'p'; });
-        if(partes.length) nomeProd = decodeURIComponent(partes[0]).replace(/-/g,' ');
+        // URL ML tem formato: /nome-do-produto/p/MLB ou /nome-do-produto/MLB
+        var partes = urlObj.pathname.split('/').filter(function(s){
+          return s.length > 5 && !/^MLB/i.test(s) && s !== 'p' && s !== 'br' && !s.startsWith('http');
+        });
+        if(partes.length){
+          // pegar a parte mais longa (nome completo do produto)
+          partes.sort(function(a,b){ return b.length - a.length; });
+          nomeProd = decodeURIComponent(partes[0]).replace(/-/g,' ').replace(/\w/g, function(l){ return l.toUpperCase(); });
+        }
       } catch(e){}
     }
     if(!nomeProd) nomeProd = 'Confira esta oferta incrivel';
