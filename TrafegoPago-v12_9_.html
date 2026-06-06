@@ -2730,15 +2730,28 @@ function rPostarRapido(){
   var igUserId = localStorage.getItem('igUserId');
   var temToken = !!(token && igUserId);
   var statusToken = temToken
-    ? '<div style="background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:#2ecc71">Token configurado - pronto para postar</div>'
-    : '<div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0a500">Token nao configurado - va em Configuracoes</div>';
+    ? '<div style="background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:#2ecc71">Token Meta configurado</div>'
+    : '<div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0a500">Configure o Token Meta em Configuracoes para publicar no Instagram/Facebook</div>';
 
-  var html = '<div style="max-width:860px;margin:0 auto;padding:10px 0 40px">';
+  var html = '<div style="max-width:900px;margin:0 auto;padding:10px 0 40px">';
   html += '<div class="card mb-16" style="border-color:rgba(79,142,247,.3)">';
-  html += '<div class="card-title" style="color:#4f8ef7;margin-bottom:6px">Postar Rapido - ate 5 produtos</div>';
-  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Para cada produto: cole a <b>URL completa</b> do ML + a <b>URL da imagem</b> (botao direito na foto). O sistema preenche tudo automaticamente.</div>';
+  html += '<div class="card-title" style="color:#4f8ef7;margin-bottom:6px">Postar Rapido - 5 produtos + 4 plataformas</div>';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Preencha os produtos, marque as plataformas e clique em Postar Tudo.</div>';
   html += statusToken;
 
+  // Checkboxes das plataformas
+  html += '<div style="background:#12121a;border:1px solid #2a2a3a;border-radius:10px;padding:14px;margin-bottom:16px">';
+  html += '<div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:10px">Plataformas de destino</div>';
+  html += '<div style="display:flex;gap:20px;flex-wrap:wrap">';
+  html += '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="plat-ig" '+(temToken?'checked':'')+' style="width:16px;height:16px;cursor:pointer"> Instagram</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="plat-fb" '+(temToken?'checked':'')+' style="width:16px;height:16px;cursor:pointer"> Facebook</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="plat-tt" style="width:16px;height:16px;cursor:pointer"> TikTok</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="plat-yt" style="width:16px;height:16px;cursor:pointer"> YouTube</label>';
+  html += '</div>';
+  html += '<div style="margin-top:8px;font-size:10px;color:#5555aa">TikTok e YouTube: configure os tokens em Configuracoes para ativar</div>';
+  html += '</div>';
+
+  // 5 produtos
   for(var i = 1; i <= 5; i++){
     html += '<div style="background:#12121a;border:1px solid #2a2a3a;border-radius:10px;padding:12px;margin-bottom:10px">';
     html += '<div style="font-weight:700;font-size:12px;color:#4f8ef7;margin-bottom:8px">Produto ' + i + '</div>';
@@ -2759,10 +2772,17 @@ function rPostarRapido(){
 async function prPostarTudo(){
   var token = localStorage.getItem('fbPageToken');
   var igUserId = localStorage.getItem('igUserId');
-  if(!token || !igUserId){ toast('Configure o Token Meta em Configuracoes','var(--red)'); return; }
+  var platIG = document.getElementById('plat-ig')&&document.getElementById('plat-ig').checked;
+  var platFB = document.getElementById('plat-fb')&&document.getElementById('plat-fb').checked;
+  var platTT = document.getElementById('plat-tt')&&document.getElementById('plat-tt').checked;
+  var platYT = document.getElementById('plat-yt')&&document.getElementById('plat-yt').checked;
+
+  if(!platIG && !platFB && !platTT && !platYT){ toast('Marque pelo menos uma plataforma','var(--amber)'); return; }
+  if((platIG||platFB) && (!token||!igUserId)){ toast('Configure o Token Meta em Configuracoes','var(--red)'); return; }
+
   var statusDiv = document.getElementById('pr-status');
-  statusDiv.innerHTML = '<div style="color:#4f8ef7;font-size:13px">Iniciando...</div>';
-  var ok = 0, erros = 0;
+  statusDiv.innerHTML = '<div style="color:#4f8ef7;font-size:13px">Iniciando publicacoes...</div>';
+  var totalOk = 0, totalErro = 0;
   var FLASK_URL = 'https://trafego-pago-brasil-production.up.railway.app';
   var nl = String.fromCharCode(10);
 
@@ -2772,76 +2792,88 @@ async function prPostarTudo(){
     if(!urlProd && !urlImg) continue;
     if(!urlProd || !urlImg){
       statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': preencha os 2 campos - pulado</div>';
-      erros++; continue;
+      continue;
     }
 
-    statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px">Buscando dados do produto '+i+'...</div>';
+    statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px;margin-top:6px">--- Produto '+i+' ---</div>';
 
+    // Buscar dados do produto
+    var nomeProd = 'Produto ' + i;
+    var preco = '';
     try {
-      // Buscar dados do produto via backend (nome, preco, link afiliado)
-      var dadosProd = null;
+      var rML = await fetch(FLASK_URL+'/buscar-produto-ml', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link:urlProd})});
+      var dML = await rML.json();
+      if(dML.titulo) nomeProd = dML.titulo;
+      if(dML.preco) preco = dML.preco;
+    } catch(e){}
+
+    var texto = nomeProd + nl
+      + (preco ? nl+'Por apenas '+preco+nl : '')
+      + nl+'Qualidade garantida'+nl
+      +'Entrega rapida pelo Mercado Livre'+nl
+      +nl+'Acesse:'+nl+urlProd+nl
+      +nl+'#oferta #mercadolivre #promocao #achados #compras #brasil';
+
+    // Proxiar imagem
+    var photoUrl = urlImg;
+    try {
+      var rPx = await fetch(FLASK_URL+'/proxy-image-ml',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:urlImg})});
+      var dPx = await rPx.json();
+      if(dPx.public_url) photoUrl = dPx.public_url;
+    } catch(e){}
+
+    // --- INSTAGRAM ---
+    if(platIG && token && igUserId){
       try {
-        var rML = await fetch(FLASK_URL+'/buscar-produto-ml', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({link: urlProd})
-        });
-        dadosProd = await rML.json();
-      } catch(e){ console.warn('busca ML falhou:', e.message); }
-
-      var nomeProd = (dadosProd && dadosProd.titulo) ? dadosProd.titulo : urlProd.split('/').filter(function(s){return s.length>8;})[0].replace(/-/g,' ').substring(0,50);
-      var preco = (dadosProd && dadosProd.preco) ? dadosProd.preco : '';
-      var linkAfiliado = urlProd; // usa a URL do produto como link (usuario ja tem o meli.la se quiser)
-
-      // Montar texto do post
-      var texto = nomeProd + nl;
-      if(preco) texto += nl + 'Por apenas ' + preco + nl;
-      texto += nl + 'Qualidade garantida' + nl;
-      texto += 'Entrega rapida pelo Mercado Livre' + nl;
-      texto += nl + 'Acesse o link:' + nl + linkAfiliado + nl;
-      texto += nl + '#oferta #mercadolivre #promocao #achados #compras #brasil #deal';
-
-      statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px">Publicando produto '+i+' - '+nomeProd.substring(0,30)+'...</div>';
-
-      // Proxiar imagem
-      var photoUrl = urlImg;
-      try {
-        var rProxy = await fetch(FLASK_URL+'/proxy-image-ml', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:urlImg})});
-        var dProxy = await rProxy.json();
-        if(dProxy.public_url) photoUrl = dProxy.public_url;
-      } catch(ep){}
-
-      // Criar container IG
-      var body1 = new URLSearchParams({image_url:photoUrl, caption:texto, access_token:token});
-      var r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media',{method:'POST',body:body1});
-      var d1 = await r1.json();
-      if(d1.error) throw new Error(d1.error.message+(d1.error.error_user_msg?' - '+d1.error.error_user_msg:''));
-
-      await new Promise(function(r){setTimeout(r,9000);});
-
-      var rSt = await fetch('https://graph.facebook.com/v25.0/'+d1.id+'?fields=status_code&access_token='+token);
-      var dSt = await rSt.json();
-      if(dSt.status_code==='IN_PROGRESS') await new Promise(function(r){setTimeout(r,5000);});
-      if(dSt.status_code==='ERROR') throw new Error('Instagram rejeitou a imagem. Tente outra URL.');
-
-      var body2 = new URLSearchParams({creation_id:d1.id, access_token:token});
-      var r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish',{method:'POST',body:body2});
-      var d2 = await r2.json();
-      if(d2.error) throw new Error(d2.error.message);
-
-      statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Produto '+i+' publicado!</div>';
-      ok++;
-      if(i < 5) await new Promise(function(r){setTimeout(r,3000);});
-
-    } catch(err){
-      statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Erro produto '+i+': '+err.message+'</div>';
-      erros++;
+        var b1 = new URLSearchParams({image_url:photoUrl, caption:texto, access_token:token});
+        var r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media',{method:'POST',body:b1});
+        var d1 = await r1.json();
+        if(d1.error) throw new Error(d1.error.message);
+        await new Promise(function(r){setTimeout(r,9000);});
+        var rSt = await fetch('https://graph.facebook.com/v25.0/'+d1.id+'?fields=status_code&access_token='+token);
+        var dSt = await rSt.json();
+        if(dSt.status_code==='IN_PROGRESS') await new Promise(function(r){setTimeout(r,5000);});
+        if(dSt.status_code==='ERROR') throw new Error('Imagem rejeitada pelo Instagram');
+        var b2 = new URLSearchParams({creation_id:d1.id, access_token:token});
+        var r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish',{method:'POST',body:b2});
+        var d2 = await r2.json();
+        if(d2.error) throw new Error(d2.error.message);
+        statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Instagram: publicado!</div>';
+        totalOk++;
+      } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Instagram erro: '+e.message+'</div>'; totalErro++; }
     }
+
+    // --- FACEBOOK ---
+    if(platFB && token){
+      var pageId = localStorage.getItem('fbPageId');
+      try {
+        if(!pageId) throw new Error('Page ID nao configurado');
+        var bfb = new URLSearchParams({message:texto, access_token:token});
+        var rfb = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/feed',{method:'POST',body:bfb});
+        var dfb = await rfb.json();
+        if(dfb.error) throw new Error(dfb.error.message);
+        statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Facebook: publicado!</div>';
+        totalOk++;
+      } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Facebook erro: '+e.message+'</div>'; totalErro++; }
+    }
+
+    // --- TIKTOK ---
+    if(platTT){
+      statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">TikTok: configure o token em Configuracoes para ativar</div>';
+    }
+
+    // --- YOUTUBE ---
+    if(platYT){
+      statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">YouTube: configure o token em Configuracoes para ativar</div>';
+    }
+
+    if(i < 5) await new Promise(function(r){setTimeout(r,2000);});
   }
 
-  var cor = ok>0 ? 'rgba(46,204,113,.2)' : 'rgba(231,76,60,.2)';
-  var tc = ok>0 ? '#2ecc71' : '#e74c3c';
-  statusDiv.innerHTML += '<div style="margin-top:10px;padding:12px;background:'+cor+';border-radius:8px;font-size:13px;font-weight:700;color:'+tc+'">'
-    +ok+' publicado(s)'+(erros>0?', '+erros+' erro(s)':'')+'</div>';
+  var cor = totalOk>0 ? 'rgba(46,204,113,.15)' : 'rgba(231,76,60,.15)';
+  var tc = totalOk>0 ? '#2ecc71' : '#e74c3c';
+  statusDiv.innerHTML += '<div style="margin-top:12px;padding:12px;background:'+cor+';border-radius:8px;font-size:13px;font-weight:700;color:'+tc+'">'
+    +'Concluido: '+totalOk+' publicacao(oes)'+(totalErro>0?', '+totalErro+' erro(s)':'')+'</div>';
 }
 
 // ======= INIT =======
