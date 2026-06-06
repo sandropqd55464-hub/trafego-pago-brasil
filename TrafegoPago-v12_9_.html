@@ -1681,7 +1681,15 @@ async function publicarAgora(i){
         const urlProxiada = await proxiarImagemML(photo_url);
         if(urlProxiada) photo_url = urlProxiada;
       }
-      if(!photo_url) throw new Error('Imagem n\u00e3o encontrada. Verifique se o Flask est\u00e1 rodando em '+FLASK_BASE);
+      if(!photo_url){
+        // Tentar pegar imagem do _ultimoML (produto buscado mais recentemente)
+        if(window._ultimoML?.imagens?.length) {
+          const FLASK_BASE2 = window.FLASK_BASE || window.location.origin;
+          const urlProx2 = await proxiarImagemML(window._ultimoML.imagens[0]);
+          photo_url = urlProx2 || window._ultimoML.imagens[0];
+        }
+        if(!photo_url) throw new Error('Imagem não encontrada. Busque o produto no Item 8 antes de publicar.');
+      }
 
       // Passo 1: criar container de mídia no Instagram
       const linkAfiliado = p.link || document.getElementById('pubLink')?.value || ML.link || '';
@@ -2680,7 +2688,22 @@ async function buscarImagensCarrossel(texto, linkProduto){
   if(dadosML?.imagens?.length >= 1){
     return dadosML.imagens.slice(0,3);
   }
-  console.error('[ML] Nenhuma imagem encontrada. Railway falhou ou produto sem foto.');
+  // Fallback final: tentar buscar imagem direto da página do produto via Railway proxy
+  try {
+    const FLASK_BASE = window.FLASK_BASE || window.location.origin;
+    const r = await fetch(FLASK_BASE + '/buscar-produto-ml', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({link: linkParaBuscar})
+    });
+    const d = await r.json();
+    if(d.imagens && d.imagens.length > 0) {
+      console.log('[ML] Fallback backend retornou imagens:', d.imagens.length);
+      _cacheML[linkParaBuscar] = d.imagens;
+      return d.imagens.slice(0,3);
+    }
+  } catch(e) { console.warn('[ML] Fallback erro:', e.message); }
+  console.error('[ML] Nenhuma imagem encontrada.');
   return [];
 }
 
