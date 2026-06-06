@@ -1685,11 +1685,8 @@ async function publicarAgora(i){
 
       // Passo 1: criar container de mídia no Instagram
       const linkAfiliado = p.link || document.getElementById('pubLink')?.value || ML.link || '';
-      const textoFinal = linkAfiliado && !p.texto.includes(linkAfiliado)
-        ? p.texto + '
-
-🔗 ' + linkAfiliado
-        : p.texto;
+      const _nlIg = String.fromCharCode(10);
+      const textoFinal = linkAfiliado && !p.texto.includes(linkAfiliado) ? p.texto + _nlIg + _nlIg + linkAfiliado : p.texto;
       const containerBody = new URLSearchParams({
         image_url: photo_url,
         caption: textoFinal,
@@ -1732,10 +1729,11 @@ async function publicarAgora(i){
       if(!token||!pageId){
         throw new Error('Configure o Page Access Token + Page ID nas ⚙ Configurações');
       }
+      const _fbLink = p.link || ML.link || '';
+      const _nl = String.fromCharCode(10);
+      const _fbTexto = _fbLink && !p.texto.includes(_fbLink) ? p.texto + _nl + _nl + _fbLink : p.texto;
       const fbBody = new URLSearchParams({
-        message: (()=>{ const lk=p.link||document.getElementById("pubLink")?.value||ML.link||""; return lk&&!p.texto.includes(lk)?p.texto+"
-
-🔗 "+lk:p.texto; })(),
+        message: _fbTexto,
         access_token: token,
       });
       // Tentar adicionar imagem se disponível
