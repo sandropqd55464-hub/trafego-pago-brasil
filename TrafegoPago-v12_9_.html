@@ -2731,42 +2731,75 @@ function rPostarRapido(){
   var temToken = !!(token && igUserId);
   var statusToken = temToken
     ? '<div style="background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:#2ecc71">Token Meta configurado</div>'
-    : '<div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0a500">Configure o Token Meta em Configuracoes para Instagram/Facebook</div>';
+    : '<div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0a500">Configure o Token Meta em Configuracoes</div>';
 
-  var html = '<div style="max-width:1000px;margin:0 auto;padding:10px 0 40px">';
-  html += '<div class="card mb-16" style="border-color:rgba(79,142,247,.3)">';
-  html += '<div class="card-title" style="color:#4f8ef7;margin-bottom:6px">Postar Rapido</div>';
-  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Cole a URL do produto + URL da imagem. Marque as plataformas ao lado de cada produto e clique Postar Tudo.</div>';
-  html += statusToken;
+  // Layout: coluna esquerda = checkboxes | coluna direita = produtos
+  var html = '<div style="display:flex;gap:16px;padding:10px 0 40px;max-width:1100px;margin:0 auto">';
 
-  // Header da tabela
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:6px;padding:0 4px">';
-  html += '<div style="font-size:10px;color:#5555aa;font-weight:700">PRODUTO</div>';
-  html += '<div style="font-size:10px;color:#5555aa;font-weight:700">URL DO PRODUTO</div>';
-  html += '<div style="font-size:10px;color:#5555aa;font-weight:700">URL DA IMAGEM</div>';
-  html += '<div style="font-size:10px;color:#5555aa;font-weight:700;text-align:center">INSTA</div>';
-  html += '<div style="font-size:10px;color:#5555aa;font-weight:700;text-align:center">FACE</div>';
-  html += '<div style="font-size:10px;color:#5555aa;font-weight:700;text-align:center">TIKTOK / YT</div>';
+  // COLUNA ESQUERDA - checkboxes por produto
+  html += '<div style="width:160px;flex-shrink:0">';
+  html += '<div style="background:#12121a;border:1px solid #2a2a3a;border-radius:10px;padding:12px;position:sticky;top:0">';
+  html += '<div style="font-size:11px;font-weight:700;color:#4f8ef7;margin-bottom:12px;text-align:center">PLATAFORMAS</div>';
+
+  // Header das colunas
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-bottom:8px">';
+  html += '<div style="font-size:9px;color:#5555aa;text-align:center">IG</div>';
+  html += '<div style="font-size:9px;color:#5555aa;text-align:center">FB</div>';
+  html += '<div style="font-size:9px;color:#5555aa;text-align:center">TT</div>';
+  html += '<div style="font-size:9px;color:#5555aa;text-align:center">YT</div>';
   html += '</div>';
 
   for(var i = 1; i <= 5; i++){
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:8px;align-items:center;background:#12121a;border:1px solid #2a2a3a;border-radius:8px;padding:10px;margin-bottom:8px">';
-    html += '<div style="font-weight:700;font-size:12px;color:#4f8ef7">Produto '+i+'</div>';
-    html += '<input id="pr-url-'+i+'" placeholder="https://www.mercadolivre.com.br/..." style="padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;width:100%;box-sizing:border-box">';
-    html += '<input id="pr-img-'+i+'" placeholder="https://http2.mlstatic.com/..." style="padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;width:100%;box-sizing:border-box">';
-    html += '<div style="text-align:center"><input type="checkbox" id="pr-ig-'+i+'" '+(temToken?'checked':'')+' style="width:18px;height:18px;cursor:pointer"></div>';
-    html += '<div style="text-align:center"><input type="checkbox" id="pr-fb-'+i+'" '+(temToken?'checked':'')+' style="width:18px;height:18px;cursor:pointer"></div>';
-    html += '<div style="display:flex;gap:8px;justify-content:center">';
-    html += '<label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:#5555aa;cursor:pointer"><input type="checkbox" id="pr-tt-'+i+'" style="width:14px;height:14px;cursor:pointer">TT</label>';
-    html += '<label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:#5555aa;cursor:pointer"><input type="checkbox" id="pr-yt-'+i+'" style="width:14px;height:14px;cursor:pointer">YT</label>';
-    html += '</div>';
-    html += '</div>';
+    html += '<div style="margin-bottom:10px">';
+    html += '<div style="font-size:10px;color:var(--text2);margin-bottom:4px">Prod '+i+'</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;align-items:center">';
+    html += '<div style="text-align:center"><input type="checkbox" id="pr-ig-'+i+'" '+(temToken?'checked':'')+' style="width:16px;height:16px;cursor:pointer"></div>';
+    html += '<div style="text-align:center"><input type="checkbox" id="pr-fb-'+i+'" '+(temToken?'checked':'')+' style="width:16px;height:16px;cursor:pointer"></div>';
+    html += '<div style="text-align:center"><input type="checkbox" id="pr-tt-'+i+'" style="width:16px;height:16px;cursor:pointer"></div>';
+    html += '<div style="text-align:center"><input type="checkbox" id="pr-yt-'+i+'" style="width:16px;height:16px;cursor:pointer"></div>';
+    html += '</div></div>';
   }
 
-  html += '<button onclick="prPostarTudo()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4f8ef7,#2ecc71);border:none;border-radius:10px;color:#0a0a0f;font-size:15px;font-weight:900;cursor:pointer;margin-top:8px">POSTAR TUDO AGORA</button>';
+  // Marcar todos / desmarcar todos
+  html += '<div style="margin-top:10px;border-top:1px solid #2a2a3a;padding-top:10px;display:flex;flex-direction:column;gap:6px">';
+  html += '<button onclick="prMarcarTodos(true)" style="padding:5px;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:5px;color:#4f8ef7;font-size:10px;cursor:pointer">Marcar Todos</button>';
+  html += '<button onclick="prMarcarTodos(false)" style="padding:5px;background:rgba(80,80,100,.1);border:1px solid #2a2a3a;border-radius:5px;color:#5555aa;font-size:10px;cursor:pointer">Desmarcar</button>';
+  html += '</div>';
+  html += '</div></div>';
+
+  // COLUNA DIREITA - produtos + botao
+  html += '<div style="flex:1">';
+  html += '<div class="card mb-16" style="border-color:rgba(79,142,247,.3)">';
+  html += '<div class="card-title" style="color:#4f8ef7;margin-bottom:6px">Postar Rapido</div>';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Cole a URL do produto + URL da imagem. Marque as plataformas ao lado e clique Postar Tudo.</div>';
+  html += statusToken;
+
+  for(var j = 1; j <= 5; j++){
+    html += '<div style="background:#12121a;border:1px solid #2a2a3a;border-radius:8px;padding:10px;margin-bottom:8px">';
+    html += '<div style="font-weight:700;font-size:12px;color:#4f8ef7;margin-bottom:6px">Produto '+j+'</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">URL do produto (mercadolivre.com.br/...)</label>';
+    html += '<input id="pr-url-'+j+'" placeholder="https://www.mercadolivre.com.br/..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
+    html += '<div><label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">URL da imagem (botao direito na foto)</label>';
+    html += '<input id="pr-img-'+j+'" placeholder="https://http2.mlstatic.com/..." style="width:100%;padding:7px 8px;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:5px;color:var(--text);font-size:11px;box-sizing:border-box"></div>';
+    html += '</div></div>';
+  }
+
+  html += '<button onclick="prPostarTudo()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4f8ef7,#2ecc71);border:none;border-radius:10px;color:#0a0a0f;font-size:15px;font-weight:900;cursor:pointer;margin-top:6px">POSTAR TUDO AGORA</button>';
   html += '<div id="pr-status" style="margin-top:12px"></div>';
   html += '</div></div>';
+  html += '</div>'; // fecha flex container
+
   document.getElementById('content').innerHTML = html;
+}
+
+function prMarcarTodos(val){
+  for(var i = 1; i <= 5; i++){
+    ['ig','fb','tt','yt'].forEach(function(p){
+      var el = document.getElementById('pr-'+p+'-'+i);
+      if(el) el.checked = val;
+    });
+  }
 }
 
 async function prPostarTudo(){
@@ -2788,18 +2821,11 @@ async function prPostarTudo(){
     var yt = document.getElementById('pr-yt-'+i)&&document.getElementById('pr-yt-'+i).checked;
 
     if(!urlProd && !urlImg) continue;
-    if(!urlProd || !urlImg){
-      statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': preencha URL e imagem - pulado</div>';
-      continue;
-    }
-    if(!ig && !fb && !tt && !yt){
-      statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': nenhuma plataforma marcada - pulado</div>';
-      continue;
-    }
+    if(!urlProd || !urlImg){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': preencha os 2 campos - pulado</div>'; continue; }
+    if(!ig && !fb && !tt && !yt){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Produto '+i+': nenhuma plataforma marcada - pulado</div>'; continue; }
 
     statusDiv.innerHTML += '<div style="color:#4f8ef7;font-size:12px;margin-top:8px;font-weight:700">Produto '+i+'</div>';
 
-    // Buscar dados do produto
     var nomeProd = 'Produto '+i, preco = '';
     try {
       var rML = await fetch(FLASK_URL+'/buscar-produto-ml',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link:urlProd})});
@@ -2808,14 +2834,8 @@ async function prPostarTudo(){
       if(dML.preco) preco = dML.preco;
     } catch(e){}
 
-    var texto = nomeProd + nl
-      + (preco ? nl+'Por apenas '+preco+nl : '')
-      + nl+'Qualidade garantida'+nl
-      +'Entrega rapida pelo Mercado Livre'+nl
-      +nl+'Acesse:'+nl+urlProd+nl
-      +nl+'#oferta #mercadolivre #promocao #achados #compras #brasil';
+    var texto = nomeProd+nl+(preco?nl+'Por apenas '+preco+nl:'')+nl+'Qualidade garantida'+nl+'Entrega rapida pelo Mercado Livre'+nl+nl+'Acesse:'+nl+urlProd+nl+nl+'#oferta #mercadolivre #promocao #achados #compras #brasil';
 
-    // Proxiar imagem
     var photoUrl = urlImg;
     try {
       var rPx = await fetch(FLASK_URL+'/proxy-image-ml',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:urlImg})});
@@ -2823,58 +2843,46 @@ async function prPostarTudo(){
       if(dPx.public_url) photoUrl = dPx.public_url;
     } catch(e){}
 
-    // INSTAGRAM
     if(ig){
       if(!token||!igUserId){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Instagram: token nao configurado</div>'; }
-      else {
-        try {
-          var b1 = new URLSearchParams({image_url:photoUrl,caption:texto,access_token:token});
-          var r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media',{method:'POST',body:b1});
-          var d1 = await r1.json();
-          if(d1.error) throw new Error(d1.error.message);
-          await new Promise(function(r){setTimeout(r,9000);});
-          var rSt = await fetch('https://graph.facebook.com/v25.0/'+d1.id+'?fields=status_code&access_token='+token);
-          var dSt = await rSt.json();
-          if(dSt.status_code==='IN_PROGRESS') await new Promise(function(r){setTimeout(r,5000);});
-          if(dSt.status_code==='ERROR') throw new Error('Instagram rejeitou a imagem');
-          var b2 = new URLSearchParams({creation_id:d1.id,access_token:token});
-          var r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish',{method:'POST',body:b2});
-          var d2 = await r2.json();
-          if(d2.error) throw new Error(d2.error.message);
-          statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Instagram: publicado!</div>';
-          totalOk++;
-        } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Instagram erro: '+e.message+'</div>'; totalErro++; }
-      }
+      else { try {
+        var b1 = new URLSearchParams({image_url:photoUrl,caption:texto,access_token:token});
+        var r1 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media',{method:'POST',body:b1});
+        var d1 = await r1.json();
+        if(d1.error) throw new Error(d1.error.message);
+        await new Promise(function(r){setTimeout(r,9000);});
+        var rSt = await fetch('https://graph.facebook.com/v25.0/'+d1.id+'?fields=status_code&access_token='+token);
+        var dSt = await rSt.json();
+        if(dSt.status_code==='IN_PROGRESS') await new Promise(function(r){setTimeout(r,5000);});
+        if(dSt.status_code==='ERROR') throw new Error('Instagram rejeitou a imagem');
+        var b2 = new URLSearchParams({creation_id:d1.id,access_token:token});
+        var r2 = await fetch('https://graph.facebook.com/v25.0/'+igUserId+'/media_publish',{method:'POST',body:b2});
+        var d2 = await r2.json();
+        if(d2.error) throw new Error(d2.error.message);
+        statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Instagram: publicado!</div>'; totalOk++;
+      } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Instagram erro: '+e.message+'</div>'; totalErro++; } }
     }
 
-    // FACEBOOK
     if(fb){
       if(!token||!pageId){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">Facebook: token ou Page ID nao configurado</div>'; }
-      else {
-        try {
-          var bfb = new URLSearchParams({message:texto,access_token:token});
-          var rfb = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/feed',{method:'POST',body:bfb});
-          var dfb = await rfb.json();
-          if(dfb.error) throw new Error(dfb.error.message);
-          statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Facebook: publicado!</div>';
-          totalOk++;
-        } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Facebook erro: '+e.message+'</div>'; totalErro++; }
-      }
+      else { try {
+        var bfb = new URLSearchParams({message:texto,access_token:token});
+        var rfb = await fetch('https://graph.facebook.com/v25.0/'+pageId+'/feed',{method:'POST',body:bfb});
+        var dfb = await rfb.json();
+        if(dfb.error) throw new Error(dfb.error.message);
+        statusDiv.innerHTML += '<div style="color:#2ecc71;font-size:12px">Facebook: publicado!</div>'; totalOk++;
+      } catch(e){ statusDiv.innerHTML += '<div style="color:#e74c3c;font-size:12px">Facebook erro: '+e.message+'</div>'; totalErro++; } }
     }
 
-    // TIKTOK
-    if(tt){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">TikTok: em breve - configure o token em Configuracoes</div>'; }
-
-    // YOUTUBE
-    if(yt){ statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">YouTube: em breve - configure o token em Configuracoes</div>'; }
+    if(tt) statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">TikTok: em breve</div>';
+    if(yt) statusDiv.innerHTML += '<div style="color:#f0a500;font-size:12px">YouTube: em breve</div>';
 
     if(i < 5) await new Promise(function(r){setTimeout(r,2000);});
   }
 
-  var cor = totalOk>0 ? 'rgba(46,204,113,.15)' : 'rgba(231,76,60,.15)';
-  var tc = totalOk>0 ? '#2ecc71' : '#e74c3c';
-  statusDiv.innerHTML += '<div style="margin-top:12px;padding:12px;background:'+cor+';border-radius:8px;font-size:13px;font-weight:700;color:'+tc+'">'
-    +'Concluido: '+totalOk+' publicacao(oes)'+(totalErro>0?', '+totalErro+' erro(s)':'')+'</div>';
+  var cor = totalOk>0?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)';
+  var tc = totalOk>0?'#2ecc71':'#e74c3c';
+  statusDiv.innerHTML += '<div style="margin-top:12px;padding:12px;background:'+cor+';border-radius:8px;font-size:13px;font-weight:700;color:'+tc+'">Concluido: '+totalOk+' publicacao(oes)'+(totalErro>0?', '+totalErro+' erro(s)':'')+'</div>';
 }
 
 // ======= INIT =======
